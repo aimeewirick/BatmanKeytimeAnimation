@@ -190,6 +190,8 @@ GLuint	AxesList;				// list to hold the axes
 int		AxesOn;					// != 0 means to draw the axes
 GLuint	BoxList;				// object display list
 GLuint	WhaleList;
+GLuint  CatList;
+GLuint  SpaceshipList;
 int		DebugOn;				// != 0 means to print debugging info
 int		DepthCueOn;				// != 0 means to use intensity depth cueing
 int		OutsideView;
@@ -391,8 +393,9 @@ Animate(GLuint object)
 		int ms = glutGet(GLUT_ELAPSED_TIME);	// milliseconds
 		ms %= MS_IN_THE_ANIMATION_CYCLE;
 		Time = (float)ms / (float)MS_IN_THE_ANIMATION_CYCLE;
+		float Adj_time = Time * rotation_rate;
 
-		glRotatef(360.f * Time * rotation_rate, x_ro, y_ro, z_ro);
+		glRotatef(360.f * Adj_time, x_ro, y_ro, z_ro);
 		
 		glCallList(object);
 		
@@ -605,6 +608,11 @@ Display( )
 	//DoRasterString( 0.f, 1.f, 0.f, (char *)"Text That Moves" );
 	//glColor3f(0.1f, 0.1f, 0.0f);
 	//Helicopter
+	glPushMatrix();
+		glColor3f(1.0f, 0.0f, 1.0f);//Purple
+		glTranslatef(0., -2, -500);
+		glCallList(SpaceshipList);
+	glPopMatrix();
 	DrawHelicopter();
 	//Top Blade
 	
@@ -630,7 +638,7 @@ Display( )
 	Y = 2.9;
 	Z = -2.1;
 	rotation_axis = 1;
-	rotation_rate = 4;
+	rotation_rate = 8;
 
 	Animate(TopBladeList);
 
@@ -638,7 +646,7 @@ Display( )
 	Y = 2.5;
 	Z = 9;
 	rotation_axis = 0;
-	rotation_rate = 8;
+	rotation_rate = 16;
 
 	Animate(RearBladeList);
 	// draw some gratuitous text that is fixed on the screen:
@@ -962,11 +970,19 @@ InitLists( )
 
 	BoxList = glGenLists( 1 );
 	glNewList( BoxList, GL_COMPILE );
-
+	glColor4f(0.0f, 1.0f, 1.0f, 1.0f);
 	glEndList();
 	WhaleList = glGenLists(1);
 	glNewList(WhaleList, GL_COMPILE);
 		LoadObjFile("whale.obj");
+	glEndList();
+	CatList = glGenLists(1);
+	glNewList(CatList, GL_COMPILE);
+	LoadObjFile("cat.obj");
+	glEndList();
+	SpaceshipList = glGenLists(1);
+	glNewList(SpaceshipList, GL_COMPILE);
+	LoadObjFile("spaceship.obj");
 	glEndList();
 	
 		//light brown/tan (0.6f,0.6f,0.3f);
