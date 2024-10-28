@@ -93,7 +93,8 @@ Keytimes::GetValue( float _time )
 	// find which pair of key-times we are between:
 	// (this is guaranteed to succeed)
 
-	int i0, i1;
+	int i0;
+	int i1;
 	float t0, t1;
 	float v0, v1;
 	for( int i = 0; i < (int) tvs.size()-1; i++ )

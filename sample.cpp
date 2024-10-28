@@ -47,11 +47,11 @@
 //		6. The transformations to be reset
 //		7. The program to quit
 //
-//	Author:			Aimee Wirck
+//	Author:			Joe Graphics
 
 // title of these windows:
 
-const char *WINDOWTITLE = "Project 1 -- Aimee Wirick";
+const char *WINDOWTITLE = "OpenGL / GLUT Sample -- Joe Graphics";
 const char *GLUITITLE   = "User Interface Window";
 
 // what the glui package defines as true and false:
@@ -109,7 +109,7 @@ enum Projections
 enum ButtonVals
 {
 	RESET,
-	QUIT
+	QUIT,
 };
 
 // window background color (rgba):
@@ -126,22 +126,24 @@ const GLfloat AXES_WIDTH   = 3.;
 
 enum Colors
 {
+	WHITE2,
 	RED,
-	YELLOW,
 	GREEN,
-	CYAN,
 	BLUE,
-	MAGENTA
+	CYAN,
+	MAGENTA,
+	YELLOW
 };
 
 char * ColorNames[ ] =
 {
+	(char*)"White",
 	(char *)"Red",
-	(char*)"Yellow",
 	(char*)"Green",
-	(char*)"Cyan",
 	(char*)"Blue",
-	(char*)"Magenta"
+	(char*)"Cyan",
+	(char*)"Magenta",
+	(char*)"Yellow"
 };
 
 // the color definitions:
@@ -149,12 +151,13 @@ char * ColorNames[ ] =
 
 const GLfloat Colors[ ][3] = 
 {
+	{ 1., 1., 1. },		// white
 	{ 1., 0., 0. },		// red
-	{ 1., 1., 0. },		// yellow
 	{ 0., 1., 0. },		// green
-	{ 0., 1., 1. },		// cyan
 	{ 0., 0., 1. },		// blue
+	{ 0., 1., 1. },		// cyan
 	{ 1., 0., 1. },		// magenta
+	{ 1., 1., 0. }		// yellow
 };
 
 // fog parameters:
@@ -171,10 +174,8 @@ const float	WHITE[ ] = { 1.,1.,1.,1. };
 
 // for animation:
 
-#define MS_IN_THE_ANIMATION_CYCLE	10000// 10000 milliseconds = 10 seconds
-
-//const int MS_PER_CYCLE = 10000;		// 10000 milliseconds = 10 seconds
-
+const int MS_PER_CYCLE = 10000;		// 10000 milliseconds = 10 seconds
+const int MSEC = 20000;
 
 // what options should we compile-in?
 // in general, you don't need to worry about these
@@ -189,35 +190,40 @@ int		ActiveButton;			// current button that is down
 GLuint	AxesList;				// list to hold the axes
 int		AxesOn;					// != 0 means to draw the axes
 GLuint	BoxList;				// object display list
-GLuint	WhaleList;
-GLuint  CatList;
-GLuint  SpaceshipList;
+GLuint  GridDL;					// grid list to create grid
+GLuint	EspressoList;
+GLuint	CupList;
+GLuint	SpoonList;
 int		DebugOn;				// != 0 means to print debugging info
 int		DepthCueOn;				// != 0 means to use intensity depth cueing
-int		OutsideView;
 int		DepthBufferOn;			// != 0 means to use the z-buffer
 int		DepthFightingOn;		// != 0 means to force the creation of z-fighting
 int		MainWindow;				// window id for main graphics window
 int		NowColor;				// index into Colors[ ]
+int		NowLight;				// current light type
+int		LightColor;				// current light color
+bool	Frozen;					// FREEZE false or UNFREEZE = true
 int		NowProjection;		// ORTHO or PERSP
 float	Scale;					// scaling factor
 int		ShadowsOn;				// != 0 means to turn shadows on
 float	Time;					// used for animation, this has a value between 0. and 1.
 int		Xmouse, Ymouse;			// mouse values
 float	Xrot, Yrot;				// rotation angles in degrees
-int		rotation_axis = 0;
-float X;
-float Y;
-float Z;
-int rotation_rate;
+float	x;
+float	y;
+float	z;
+float	temp_time;
+
+
 
 
 // function prototypes:
-
 void	Animate( );
 void	Display( );
 void	DoAxesMenu( int );
 void	DoColorMenu( int );
+void	DoLightColorMenu(int);
+void	DoLightTypeMenu(int);
 void	DoDepthBufferMenu( int );
 void	DoDepthFightingMenu( int );
 void	DoDepthMenu( int );
@@ -316,17 +322,28 @@ TimeOfDaySeed( )
 
 // these are here for when you need them -- just uncomment the ones you need:
 
-//#include "setmaterial.cpp"
-//#include "setlight.cpp"
+#include "setmaterial.cpp"
+#include "setlight.cpp"
 #include "osusphere.cpp"
 #include "osucone.cpp"
 #include "osutorus.cpp"
 //#include "bmptotexture.cpp"
 #include "loadobjfile.cpp"
-//#include "keytime.cpp"
+#include "keytime.cpp"
 //#include "glslprogram.cpp"
 //#include "vertexbufferobject.cpp"
-#include "heli.550"
+
+Keytimes Xpos1, Xrot1;//cup
+Keytimes Xpos2, Xrot2;//spoon
+Keytimes Xpos3, Xrot3;//eye
+Keytimes Ypos1, Yrot1;//cup
+Keytimes Ypos2, Yrot2;//spoon
+Keytimes Ypos3, Yrot3;//eye
+Keytimes Zpos1, Zrot1;//cup
+Keytimes Zpos2, Zrot2;//spoon
+Keytimes Zpos3, Zrot3;//eye
+Keytimes Xpos4;//coffee in cup radius
+Keytimes Ypos4;//coffee pouring length
 
 
 // main program:
@@ -378,99 +395,23 @@ main( int argc, char *argv[ ] )
 // do not call Display( ) from here -- let glutPostRedisplay( ) do it
 
 void
-Animate(GLuint object)
+Animate( )
 {
 	// put animation stuff in here -- change some global variables for Display( ) to find:
-	int x_ro = 0;
-	int y_ro = 0;
-	int z_ro = 0;
-	if (rotation_axis == 0) { x_ro = 1; }
-	if (rotation_axis == 1) { y_ro = 1; }
-	if (rotation_axis == 2) { z_ro = 1; }
 
-	glPushMatrix();
-		glTranslatef(X,Y,Z);
-		int ms = glutGet(GLUT_ELAPSED_TIME);	// milliseconds
-		ms %= MS_IN_THE_ANIMATION_CYCLE;
-		Time = (float)ms / (float)MS_IN_THE_ANIMATION_CYCLE;
-		float Adj_time = Time * rotation_rate;
+	int ms = glutGet(GLUT_ELAPSED_TIME);
+	ms %= MS_PER_CYCLE;							// makes the value of ms between 0 and MS_PER_CYCLE-1
+	Time = (float)ms / (float)MS_PER_CYCLE;		// makes the value of Time between 0. and slightly less than 1.
 
-		glRotatef(360.f * Adj_time, x_ro, y_ro, z_ro);
-		
-		glCallList(object);
-		
-	glPopMatrix();
+	// for example, if you wanted to spin an object in Display( ), you might call: glRotatef( 360.f*Time,   0., 1., 0. );
 
-	//int ms = glutGet(GLUT_ELAPSED_TIME);
-	//ms %= MS_PER_CYCLE;							// makes the value of ms between 0 and MS_PER_CYCLE-1
-	//Time = (float)ms / (float)MS_PER_CYCLE;		// makes the value of Time between 0. and slightly less than 1.
-	// for example, if you wanted to spin an object in Display( ), you might call: 
 	// force a call to Display( ) next time it is convenient:
 
 	glutSetWindow( MainWindow );
 	glutPostRedisplay( );
 }
 
-void
-DrawHelicopter()
-{
-	int i;
-	struct point* p0, * p1, * p2;
-	struct tri* tp;
-	float p01[3], p02[3], n[3];
 
-	glPushMatrix();
-	glTranslatef(0., -1., 0.);
-	glRotatef(97., 0., 1., 0.);
-	glRotatef(-15., 0., 0., 1.);
-	glBegin(GL_TRIANGLES);
-	for (i = 0, tp = Helitris; i < Helintris; i++, tp++)
-	{
-		p0 = &Helipoints[tp->p0];
-		p1 = &Helipoints[tp->p1];
-		p2 = &Helipoints[tp->p2];
-
-		// fake "lighting" from above:
-
-		p01[0] = p1->x - p0->x;
-		p01[1] = p1->y - p0->y;
-		p01[2] = p1->z - p0->z;
-		p02[0] = p2->x - p0->x;
-		p02[1] = p2->y - p0->y;
-		p02[2] = p2->z - p0->z;
-		Cross(p01, p02, n);
-		Unit(n, n);
-		n[1] = fabs(n[1]);
-		n[1] += .25;
-		if (n[1] > 1.)
-			n[1] = 1.;
-		glColor3f(0., n[1], 0.);
-
-		glVertex3f(p0->x, p0->y, p0->z);
-		glVertex3f(p1->x, p1->y, p1->z);
-		glVertex3f(p2->x, p2->y, p2->z);
-	}
-	glEnd();
-	glPopMatrix();
-}
-void
-DrawBlade() 
-{
-	float BLADE_RADIUS = 1.0;
-	float BLADE_WIDTH = 0.4;
-
-	glPushMatrix();
-		glBegin(GL_TRIANGLES);
-			glVertex2f(BLADE_RADIUS, BLADE_WIDTH / 2.);
-			glVertex2f(0., 0.);
-			glVertex2f(BLADE_RADIUS, -BLADE_WIDTH / 2.);
-
-			glVertex2f(-BLADE_RADIUS, -BLADE_WIDTH / 2.);
-			glVertex2f(0., 0.);
-			glVertex2f(-BLADE_RADIUS, BLADE_WIDTH / 2.);
-		glEnd();
-	glPopMatrix();
-}
 // draw the complete scene:
 
 void
@@ -516,7 +457,7 @@ Display( )
 	if( NowProjection == ORTHO )
 		glOrtho( -2.f, 2.f,     -2.f, 2.f,     0.1f, 1000.f );
 	else
-		gluPerspective(70.f, 1.f,	0.1f, 1000.f );
+		gluPerspective( 70.f, 1.f,	0.1f, 1000.f );
 
 	// place the objects into the scene:
 
@@ -524,35 +465,19 @@ Display( )
 	glLoadIdentity( );
 
 	// set the eye position, look-at position, and up-vector:
-	if (OutsideView != 0)
-	{
 
-		//gluLookAt(0, -.6, 1., 0.f, 0.f, 0.f, 0.f, 1.f, 0.f);
-		glRotatef(180, 0., 1., 0.);
-		gluLookAt(-0.4, 1.8, -4.9, 0.f, 0.f, 0.f, 0.f, 1.f, 0.f);
+	//gluLookAt( 0.f, 30.f, 20.f,     0.f, 0.f, 0.f,     0.f, 1.f, 0.f );
 
-	}
-	else
-	{
+	// rotate the scene:
 
-		gluLookAt(-0.4, 1.8, -10, 0.f, 0.f, 0.f, 0.f, 1.f, 0.f);
+	glRotatef( (GLfloat)Yrot, 0.f, 1.f, 0.f );
+	glRotatef( (GLfloat)Xrot, 1.f, 0.f, 0.f );
 
-		// rotate the scene:
+	// uniformly scale the scene:
 
-		glRotatef((GLfloat)Yrot, 0.f, 1.f, 0.f);
-		glRotatef((GLfloat)Xrot, 1.f, 0.f, 0.f);
-		// uniformly scale the scene:
-
-		if (Scale < MINSCALE)
-			Scale = MINSCALE;
-		glScalef((GLfloat)Scale, (GLfloat)Scale, (GLfloat)Scale);
-
-	}
-	
-
-
-
-
+	if( Scale < MINSCALE )
+		Scale = MINSCALE;
+	glScalef( (GLfloat)Scale, (GLfloat)Scale, (GLfloat)Scale );
 
 	// set the fog parameters:
 
@@ -578,14 +503,60 @@ Display( )
 		glCallList( AxesList );
 	}
 
+	// to select lighting color &Colors[LightColor][0]
+
+	
 	// since we are using glScalef( ), be sure the normals get unitized:
 
 	glEnable( GL_NORMALIZE );
+	int msec = glutGet(GLUT_ELAPSED_TIME) % MSEC;
+	float nowTime = (float)msec / 1000.;
+	gluLookAt(Xpos3.GetValue(nowTime), Ypos3.GetValue(nowTime), Zpos3.GetValue(nowTime), 0.f, 0.f, 0.f, 0.f, 1.f, 0.f);
+	int r = 20;
+	float degree_O = 360 * Time;
+	float radian_O = degree_O * (M_PI / 180);
+
+	float x = r * cos(radian_O);
+	float z = r * sin(radian_O);
+	float temp_y = cos(radian_O) * 7;
+	float y = temp_y + 12;
+
+	if (NowLight == 0)
+		SetPointLight(GL_LIGHT0, 0, 20, 20, *&Colors[LightColor][0], *&Colors[LightColor][1], *&Colors[LightColor][2]);
+	if(NowLight == 1)
+		SetSpotLight(GL_LIGHT0, x, y, z, -x,-y,-z, *&Colors[LightColor][0], *&Colors[LightColor][1], *&Colors[LightColor][2]);
+
+	glEnable(GL_LIGHTING);
+	glEnable(GL_LIGHT0);
+	glShadeModel(GL_SMOOTH);
+	//set grid
+	SetMaterial(1.0f, 0.5f, 0.0f, 20);
+	glCallList(GridDL);
+	//draw cup
+	glPushMatrix();
+		glTranslatef(Xpos1.GetValue(nowTime), Ypos1.GetValue(nowTime), Zpos1.GetValue(nowTime));
+		glCallList(CupList);
+	glPopMatrix();
+	//draw espresso machine
+	glCallList(EspressoList);
+	//draw spoon
+	glPushMatrix();
+		glTranslatef(-5, 0, 6);
+		glTranslatef(Xpos2.GetValue(nowTime), Ypos2.GetValue(nowTime), 0);
+		glRotatef(Xrot2.GetValue(nowTime), 1., 0., 0.);
+		//printf("%f",Xrot2.GetValue(nowTime));
+		glCallList(SpoonList);
+	glPopMatrix();
+
+
+	glDisable(GL_LIGHTING);
+	
 
 
 	// draw the box object by calling up its display list:
 
-	glCallList( BoxList );
+	//glCallList( BoxList );
+	
 
 #ifdef DEMO_Z_FIGHTING
 	if( DepthFightingOn != 0 )
@@ -604,51 +575,10 @@ Display( )
 	// a good use for the second one might be to have vertex numbers on the screen alongside each vertex
 
 	glDisable( GL_DEPTH_TEST );
-	//glColor3f( 0.f, 1.f, 1.f );
+	glColor3f( 0.f, 1.f, 1.f );
 	//DoRasterString( 0.f, 1.f, 0.f, (char *)"Text That Moves" );
-	//glColor3f(0.1f, 0.1f, 0.0f);
-	//Helicopter
-	glPushMatrix();
-		glColor3f(1.0f, 0.0f, 1.0f);//Purple
-		glTranslatef(0., -2, -500);
-		glCallList(SpaceshipList);
-	glPopMatrix();
-	DrawHelicopter();
-	//Top Blade
-	
-	GLuint TopBladeList = glGenLists(1);
-	glNewList(TopBladeList, GL_COMPILE);
-	glPushMatrix();
-		glScalef(5, 1, 1);
-		DrawBlade();
-		glPopMatrix();
-	glEndList();
-	
-	//Rear Blade
-	GLuint RearBladeList = glGenLists(1);
-	glNewList(RearBladeList, GL_COMPILE);
-		glPushMatrix();
-			glRotatef(90, 0, 1, 0);
-			glScalef(3, 1, 1);
-			DrawBlade();
-		glPopMatrix();
-	glEndList();
 
-	X = 0.;
-	Y = 2.9;
-	Z = -2.1;
-	rotation_axis = 1;
-	rotation_rate = 8;
 
-	Animate(TopBladeList);
-
-	X = .5;
-	Y = 2.5;
-	Z = 9;
-	rotation_axis = 0;
-	rotation_rate = 16;
-
-	Animate(RearBladeList);
 	// draw some gratuitous text that is fixed on the screen:
 	//
 	// the projection matrix is reset to define a scene whose
@@ -698,6 +628,23 @@ DoColorMenu( int id )
 	glutPostRedisplay( );
 }
 
+void
+DoLightTypeMenu(int id)
+{
+	NowLight = id;
+
+	glutSetWindow(MainWindow);
+	glutPostRedisplay();
+}
+
+void
+DoLightColorMenu(int id)
+{
+	LightColor = id;
+
+	glutSetWindow(MainWindow);
+	glutPostRedisplay();
+}
 
 void
 DoDebugMenu( int id )
@@ -738,14 +685,6 @@ DoDepthMenu( int id )
 	glutPostRedisplay( );
 }
 
-void
-DoViewMenu(int id)
-{
-	OutsideView = id;
-
-	glutSetWindow(MainWindow);
-	glutPostRedisplay();
-}
 
 // main menu callback:
 
@@ -754,6 +693,7 @@ DoMainMenu( int id )
 {
 	switch( id )
 	{
+
 		case RESET:
 			Reset( );
 			break;
@@ -906,12 +846,133 @@ InitGraphics( )
 	glutMenuStateFunc( NULL );
 	glutTimerFunc( -1, NULL, 0 );
 
+	Xpos1.Init(); //cup
+	Xpos1.AddTimeValue(0.0, 0.000);
+	Xpos1.AddTimeValue(0.5, 1.000);
+	Xpos1.AddTimeValue(2.0, 2.500);
+	Xpos1.AddTimeValue(5.0, 2.500);
+	Xpos1.AddTimeValue(8.0, 1.000);
+	Xpos1.AddTimeValue(10.0, 0.000);
+	Xpos1.AddTimeValue(12.0, 0.000);
+	Xpos1.AddTimeValue(14.0, 0.000);
+	Xpos1.AddTimeValue(16.0, 0.000);
+	Xpos1.AddTimeValue(18.0, 0.000);
+
+	Ypos1.Init();
+	Ypos1.AddTimeValue(0.0, 0.000);
+	Ypos1.AddTimeValue(0.5, 1.000);
+	Ypos1.AddTimeValue(2.0, 2.000);
+	Ypos1.AddTimeValue(5.0, 2.000);
+	Ypos1.AddTimeValue(8.0, 1.000);
+	Ypos1.AddTimeValue(10.0, 0.000);
+	Ypos1.AddTimeValue(12.0, 0.000);
+	Ypos1.AddTimeValue(14.0, 0.000);
+	Ypos1.AddTimeValue(16.0, 0.000);
+	Ypos1.AddTimeValue(18.0, 0.000);
+
+	Zpos1.Init();
+	Zpos1.AddTimeValue(0.0, 0.000);
+	Zpos1.AddTimeValue(0.5, -1.000);
+	Zpos1.AddTimeValue(2.0, -5.00);
+	Zpos1.AddTimeValue(5.0, -5.00);
+	Zpos1.AddTimeValue(8.0, -2.00);
+	Zpos1.AddTimeValue(10.0, -1.00);
+	Zpos1.AddTimeValue(12.0, -0.500);
+	Zpos1.AddTimeValue(14.0, 0.000);
+	Zpos1.AddTimeValue(16.0, 0.000);
+	Zpos1.AddTimeValue(18.0, 0.000);
+
+
+	Xpos2.Init(); //spoon
+	Xpos2.AddTimeValue(0.0, 0.000);
+	Xpos2.AddTimeValue(0.5, 0.000);
+	Xpos2.AddTimeValue(2.0, 0.000);
+	Xpos2.AddTimeValue(5.0, 0.000);
+	Xpos2.AddTimeValue(8.0, 2.000);
+	Xpos2.AddTimeValue(10.0, 3.000);
+	Xpos2.AddTimeValue(12.0, 2.000);
+	Xpos2.AddTimeValue(14.0, 0.000);
+	Xpos2.AddTimeValue(16.0, 0.000);
+	Xpos2.AddTimeValue(18.0, 0.000);
+
+	Xrot2.Init();
+	Xrot2.AddTimeValue(0.0, 0.000);
+	Xrot2.AddTimeValue(0.5, 0.000);
+	Xrot2.AddTimeValue(2.0, -45);
+	Xrot2.AddTimeValue(5.0, -90);
+	Xrot2.AddTimeValue(8.0, -90);
+	Xrot2.AddTimeValue(10.0, -90);
+	Xrot2.AddTimeValue(12.0, -45.00);
+	Xrot2.AddTimeValue(14.0, 0.000);
+	Xrot2.AddTimeValue(16.0, 0.000);
+	Xrot2.AddTimeValue(18.0, 0.000);
+
+	Ypos2.Init();
+	Ypos2.AddTimeValue(0.0, 0.000);
+	Ypos2.AddTimeValue(0.5, 2.000);
+	Ypos2.AddTimeValue(2.0, 3.000);
+	Ypos2.AddTimeValue(5.0, 4.000);
+	Ypos2.AddTimeValue(8.0, 5.00);
+	Ypos2.AddTimeValue(10.0, 4.00);
+	Ypos2.AddTimeValue(12.0, 3.00);
+	Ypos2.AddTimeValue(14.0, 3.000);
+	Ypos2.AddTimeValue(16.0, 3.000);
+	Ypos2.AddTimeValue(18.0, 0.000);
+
+	Zpos2.Init();
+	Zpos2.AddTimeValue(0.0, 0.000);
+	Zpos2.AddTimeValue(0.5, 0.000);
+	Zpos2.AddTimeValue(2.0, 0.000);
+	Zpos2.AddTimeValue(5.0, 0.000);
+	Zpos2.AddTimeValue(8.0, 4.000);
+	Zpos2.AddTimeValue(10.0, 4.000);
+	Zpos2.AddTimeValue(12.0, 1.00);
+	Zpos2.AddTimeValue(14.0, 1.000);
+	Zpos2.AddTimeValue(16.0, 0.000);
+	Zpos2.AddTimeValue(18.0, 0.000);
+
+	Xpos3.Init(); //eye
+	Xpos3.AddTimeValue(0.0, 0.000);
+	Xpos3.AddTimeValue(0.5, 0.000);
+	Xpos3.AddTimeValue(2.0, 0.000);
+	Xpos3.AddTimeValue(5.0, 0.000);
+	Xpos3.AddTimeValue(8.0, 0.000);
+	Xpos3.AddTimeValue(10.0, 0.000);
+	Xpos3.AddTimeValue(12.0, 0.000);
+	Xpos3.AddTimeValue(14.0, 0.000);
+	Xpos3.AddTimeValue(16.0, 0.000);
+	Xpos3.AddTimeValue(18.0, 0.000);
+	
+	Ypos3.Init();
+	Ypos3.AddTimeValue(0.0, 30.000);
+	Ypos3.AddTimeValue(0.5, 30.000);
+	Ypos3.AddTimeValue(2.0, 30.000);
+	Ypos3.AddTimeValue(5.0, 30.000);
+	Ypos3.AddTimeValue(8.0, 15.000);
+	Ypos3.AddTimeValue(10.0, 15.000);
+	Ypos3.AddTimeValue(12.0, 15.000);
+	Ypos3.AddTimeValue(14.0, 30.000);
+	Ypos3.AddTimeValue(16.0, 30.000);
+	Ypos3.AddTimeValue(18.0, 30.000);
+
+	Zpos3.Init();
+	Zpos3.AddTimeValue(0.0, 20.00);
+	Zpos3.AddTimeValue(0.5, 20.00);
+	Zpos3.AddTimeValue(2.0, 20.00);
+	Zpos3.AddTimeValue(5.0, 20.00);
+	Zpos3.AddTimeValue(8.0, 15.00);
+	Zpos3.AddTimeValue(10.0, 15.000);
+	Zpos3.AddTimeValue(12.0, 15.000);
+	Zpos3.AddTimeValue(14.0, 20.000);
+	Zpos3.AddTimeValue(16.0, 20.000);
+	Zpos3.AddTimeValue(18.0, 20.000);
+
 	// setup glut to call Animate( ) every time it has
 	// 	nothing it needs to respond to (which is most of the time)
 	// we don't need to do this for this program, and really should set the argument to NULL
 	// but, this sets us up nicely for doing animation
 
-	glutIdleFunc(NULL);
+	glutIdleFunc( Animate );
 
 	// init the glew package (a window must be open to do this):
 
@@ -937,25 +998,6 @@ InitGraphics( )
 //  with a call to glCallList( )
 
 void
-MakeTriangle(float width, float height) {
-	int temp_y = 0;
-	for (int j = 0; j <= height; j++) { //rows
-		for (int i = 0; i <= width; i++) { //items in rows
-			
-		}
-		temp_y += 1;
-	}
-}
-float
-DegreesToRadians(int angle)
-{
-	float radians = angle * (M_PI / 180);
-	return radians;
-}
-
-
-
-void
 InitLists( )
 {
 	if (DebugOn != 0)
@@ -970,28 +1012,52 @@ InitLists( )
 
 	BoxList = glGenLists( 1 );
 	glNewList( BoxList, GL_COMPILE );
-	glColor4f(0.0f, 1.0f, 1.0f, 1.0f);
-	glEndList();
-	WhaleList = glGenLists(1);
-	glNewList(WhaleList, GL_COMPILE);
-		LoadObjFile("whale.obj");
-	glEndList();
-	CatList = glGenLists(1);
-	glNewList(CatList, GL_COMPILE);
-	LoadObjFile("cat.obj");
-	glEndList();
-	SpaceshipList = glGenLists(1);
-	glNewList(SpaceshipList, GL_COMPILE);
-	LoadObjFile("spaceship.obj");
-	glEndList();
-	
-		//light brown/tan (0.6f,0.6f,0.3f);
-	    //medium grey (0.4f, 0.4f, 0.4f);
 
-	
-	
+		glBegin( GL_QUADS );
 
+			glColor3f( 1., 0., 0. );
 
+				glNormal3f( 1., 0., 0. );
+					glVertex3f(  dx, -dy,  dz );
+					glVertex3f(  dx, -dy, -dz );
+					glVertex3f(  dx,  dy, -dz );
+					glVertex3f(  dx,  dy,  dz );
+
+				glNormal3f(-1., 0., 0.);
+					glVertex3f( -dx, -dy,  dz);
+					glVertex3f( -dx,  dy,  dz );
+					glVertex3f( -dx,  dy, -dz );
+					glVertex3f( -dx, -dy, -dz );
+
+			glColor3f( 0., 1., 0. );
+
+				glNormal3f(0., 1., 0.);
+					glVertex3f( -dx,  dy,  dz );
+					glVertex3f(  dx,  dy,  dz );
+					glVertex3f(  dx,  dy, -dz );
+					glVertex3f( -dx,  dy, -dz );
+
+				glNormal3f(0., -1., 0.);
+					glVertex3f( -dx, -dy,  dz);
+					glVertex3f( -dx, -dy, -dz );
+					glVertex3f(  dx, -dy, -dz );
+					glVertex3f(  dx, -dy,  dz );
+
+			glColor3f(0., 0., 1.);
+
+				glNormal3f(0., 0., 1.);
+					glVertex3f(-dx, -dy, dz);
+					glVertex3f( dx, -dy, dz);
+					glVertex3f( dx,  dy, dz);
+					glVertex3f(-dx,  dy, dz);
+
+				glNormal3f(0., 0., -1.);
+					glVertex3f(-dx, -dy, -dz);
+					glVertex3f(-dx,  dy, -dz);
+					glVertex3f( dx,  dy, -dz);
+					glVertex3f( dx, -dy, -dz);
+
+		glEnd( );
 #ifdef NOTDEF
 		glColor3f(1., 1., 1.);
 		glBegin(GL_TRIANGLES);
@@ -1012,9 +1078,77 @@ InitLists( )
 			Axes( 1.5 );
 		glLineWidth( 1. );
 	glEndList( );
+
+	// create the grid
+	#define XSIDE	20			// length of the x side of the grid
+	#define X0      (-XSIDE/2.)		// where one side starts
+	#define NX	100			// how many points in x
+	#define DX	( XSIDE/(float)NX )	// change in x between the points
+
+	#define YGRID	0.f			// y-height of the grid
+
+	#define ZSIDE	20			// length of the z side of the grid
+	#define Z0      (-ZSIDE/2.)		// where one side starts
+	#define NZ	100			// how many points in z
+	#define DZ	( ZSIDE/(float)NZ )	// change in z between the points
+
+	GridDL = glGenLists(1);
+	glNewList(GridDL, GL_COMPILE);
+			// or whatever else you want
+	glNormal3f(0., 1., 0.);
+	for (int i = 0; i < NZ; i++)
+	{
+		glColor3f(1.0f, 0.5f, 0.0f);
+		glBegin(GL_QUAD_STRIP);
+		for (int j = 0; j < NX; j++)
+		{
+			glVertex3f(X0 + DX * (float)j, YGRID, Z0 + DZ * (float)(i + 0));
+			glVertex3f(X0 + DX * (float)j, YGRID, Z0 + DZ * (float)(i + 1));
+		}
+		glEnd();
+	}
+	glEndList();
+
+	EspressoList = glGenLists(1);
+	glNewList(EspressoList, GL_COMPILE);
+		glPushMatrix();
+		glScalef(0.3f, 0.3f, 0.3f);
+		glTranslatef(0.0f, 0.0f, -10.0f);
+		glRotatef(270, 1, 0, 0);
+		SetMaterial(0.3f, 0.3f, 0.3f, 100.f);
+		LoadObjFile("espresso.obj");
+		glPopMatrix();
+	glEndList();
+
+	CupList = glGenLists(1);
+	glNewList(CupList, GL_COMPILE);
+	glPushMatrix();
+		glScalef(0.5f, 0.5f, 0.5f);
+		glTranslatef(-5, 0, 10);
+		//glRotatef(270, 1, 0, 0);
+		SetMaterial(1.0f, 1.0f, 1.0f,100.f);
+		LoadObjFile("cup.obj");
+	glPopMatrix();
+	glEndList();
+
+	SpoonList = glGenLists(1);
+	glNewList(SpoonList, GL_COMPILE);
+		glPushMatrix();
+			glScalef(1.1f, 1.1f, 1.1f);
+			
+			//glRotatef(25, -1, 0, 1);
+			SetMaterial(0.5f, 0.5f, 0.5f, 200.f);
+			LoadObjFile("spoon.obj");
+		glPopMatrix();
+	glEndList();
+
 }
 
+void
+LetThereBeLight()
+{
 
+}
 // initialize the glui window:
 
 void
@@ -1036,13 +1170,19 @@ InitMenus( )
 	glutAddMenuEntry( "Off",  0 );
 	glutAddMenuEntry( "On",   1 );
 
+	int lightcolormenu = glutCreateMenu(DoLightColorMenu);
+	for (int i = 0; i < numColors; i++)
+	{
+		glutAddMenuEntry(ColorNames[i], i);
+	}
+
+	int lighttypemenu = glutCreateMenu(DoLightTypeMenu);
+	glutAddMenuEntry( "Point Light", 0);
+	glutAddMenuEntry( "Spot Light",  1);
+
 	int depthcuemenu = glutCreateMenu( DoDepthMenu );
 	glutAddMenuEntry( "Off",  0 );
 	glutAddMenuEntry( "On",   1 );
-
-	int viewmenu = glutCreateMenu(DoViewMenu);
-	glutAddMenuEntry("Outside View", 0);
-	glutAddMenuEntry("Inside View", 1);
 
 	int depthbuffermenu = glutCreateMenu( DoDepthBufferMenu );
 	glutAddMenuEntry( "Off",  0 );
@@ -1063,6 +1203,9 @@ InitMenus( )
 	int mainmenu = glutCreateMenu( DoMainMenu );
 	glutAddSubMenu(   "Axes",          axesmenu);
 	glutAddSubMenu(   "Axis Colors",   colormenu);
+	glutAddSubMenu(   "Light Colors",  lightcolormenu);
+	glutAddSubMenu(   "Light Type",    lighttypemenu);
+
 
 #ifdef DEMO_DEPTH_BUFFER
 	glutAddSubMenu(   "Depth Buffer",  depthbuffermenu);
@@ -1073,7 +1216,6 @@ InitMenus( )
 #endif
 
 	glutAddSubMenu(   "Depth Cue",     depthcuemenu);
-	glutAddSubMenu("View Selection", viewmenu);
 	glutAddSubMenu(   "Projection",    projmenu );
 	glutAddMenuEntry( "Reset",         RESET );
 	glutAddSubMenu(   "Debug",         debugmenu);
@@ -1100,11 +1242,51 @@ Keyboard( unsigned char c, int x, int y )
 			NowProjection = ORTHO;
 			break;
 
-		case 'p':
-		case 'P':
+		case 'j':
+		case 'J':
 			NowProjection = PERSP;
 			break;
-
+		case 'p':
+		case 'P':
+			NowLight = 0;
+			break;
+		case 's':
+		case 'S':
+			NowLight = 1;
+			break;
+		case 'w':
+		case 'W':
+			LightColor = 0;
+			break;
+		case 'r':
+		case 'R':
+			LightColor = 1;
+			break;
+		case 'g':
+		case 'G':
+			LightColor = 2;
+			break;
+		case 'b':
+		case 'B':
+			LightColor = 3;
+			break;
+		case 'c':
+		case 'C':
+			LightColor = 4;
+			break;
+		case 'm':
+		case 'M':
+			LightColor = 5;
+			break;
+		case 'f':
+		case 'F':
+			Frozen = !Frozen;
+			if (Frozen)
+				glutIdleFunc(NULL);
+			else
+				
+				glutIdleFunc(Animate);
+			break;
 		case 'q':
 		case 'Q':
 		case ESCAPE:
@@ -1187,7 +1369,7 @@ MouseButton( int button, int state, int x, int y )
 // called when the mouse moves while a button is down:
 
 void
-MouseMotion( int x, int y ) //change this for inside view
+MouseMotion( int x, int y )
 {
 	int dx = x - Xmouse;		// change in mouse coords
 	int dy = y - Ymouse;
@@ -1226,10 +1408,12 @@ Reset( )
 	ActiveButton = 0;
 	AxesOn = 1;
 	DebugOn = 0;
+	Frozen = false;
+	LightColor = WHITE2;
+	NowLight = 0;
 	DepthBufferOn = 1;
 	DepthFightingOn = 0;
 	DepthCueOn = 0;
-	OutsideView = 0;
 	Scale  = 1.0;
 	ShadowsOn = 0;
 	NowColor = YELLOW;
