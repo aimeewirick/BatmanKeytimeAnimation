@@ -5,6 +5,16 @@
 #include <ctype.h>
 #include <time.h>
 
+#include <iostream>
+#include <fstream>
+#include <vector>
+
+
+
+
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
+
 
 #ifndef F_PI
 #define F_PI		((float)(M_PI))
@@ -51,12 +61,12 @@
 
 // title of these windows:
 
-const char *WINDOWTITLE = "OpenGL / GLUT Sample -- Joe Graphics";
-const char *GLUITITLE   = "User Interface Window";
+const char* WINDOWTITLE = "OpenGL / GLUT Sample -- Joe Graphics";
+const char* GLUITITLE = "User Interface Window";
 
 // what the glui package defines as true and false:
 
-const int GLUITRUE  = true;
+const int GLUITRUE = true;
 const int GLUIFALSE = false;
 
 // the escape key:
@@ -83,7 +93,7 @@ const float MINSCALE = 0.05f;
 
 // scroll wheel button values:
 
-const int SCROLL_WHEEL_UP   = 3;
+const int SCROLL_WHEEL_UP = 3;
 const int SCROLL_WHEEL_DOWN = 4;
 
 // equivalent mouse movement when we click the scroll wheel:
@@ -92,9 +102,9 @@ const float SCROLL_WHEEL_CLICK_FACTOR = 5.f;
 
 // active mouse buttons (or them together):
 
-const int LEFT   = 4;
+const int LEFT = 4;
 const int MIDDLE = 2;
-const int RIGHT  = 1;
+const int RIGHT = 1;
 
 // which projection:
 
@@ -114,11 +124,11 @@ enum ButtonVals
 
 // window background color (rgba):
 
-const GLfloat BACKCOLOR[ ] = { 0., 0., 0., 1. };
+const GLfloat BACKCOLOR[] = { 0., 0., 0., 1. };
 
 // line width for the axes:
 
-const GLfloat AXES_WIDTH   = 3.;
+const GLfloat AXES_WIDTH = 3.;
 
 // the color numbers:
 // this order must match the radio button order, which must match the order of the color names,
@@ -135,10 +145,10 @@ enum Colors
 	YELLOW
 };
 
-char * ColorNames[ ] =
+char* ColorNames[] =
 {
 	(char*)"White",
-	(char *)"Red",
+	(char*)"Red",
 	(char*)"Green",
 	(char*)"Blue",
 	(char*)"Cyan",
@@ -149,7 +159,7 @@ char * ColorNames[ ] =
 // the color definitions:
 // this order must match the menu order
 
-const GLfloat Colors[ ][3] = 
+const GLfloat Colors[][3] =
 {
 	{ 1., 1., 1. },		// white
 	{ 1., 0., 0. },		// red
@@ -163,19 +173,19 @@ const GLfloat Colors[ ][3] =
 // fog parameters:
 
 const GLfloat FOGCOLOR[4] = { .0f, .0f, .0f, 1.f };
-const GLenum  FOGMODE     = GL_LINEAR;
-const GLfloat FOGDENSITY  = 0.30f;
-const GLfloat FOGSTART    = 1.5f;
-const GLfloat FOGEND      = 4.f;
+const GLenum  FOGMODE = GL_LINEAR;
+const GLfloat FOGDENSITY = 0.30f;
+const GLfloat FOGSTART = 1.5f;
+const GLfloat FOGEND = 4.f;
 
 // for lighting:
 
-const float	WHITE[ ] = { 1.,1.,1.,1. };
+const float	WHITE[] = { 1.,1.,1.,1. };
 
 // for animation:
 
 const int MS_PER_CYCLE = 10000;		// 10000 milliseconds = 10 seconds
-const int MSEC = 20000;
+const int MSEC = 18000;
 
 // what options should we compile-in?
 // in general, you don't need to worry about these
@@ -185,15 +195,26 @@ const int MSEC = 20000;
 
 
 // non-constant global variables:
-
+float	StepTracker;            // tracks which step we are on
 int		ActiveButton;			// current button that is down
 GLuint	AxesList;				// list to hold the axes
 int		AxesOn;					// != 0 means to draw the axes
+int		SpotLight = 1;				// turns on off spotlight for bat signal
 GLuint	BoxList;				// object display list
-GLuint  GridDL;					// grid list to create grid
-GLuint	EspressoList;
-GLuint	CupList;
-GLuint	SpoonList;
+GLuint	BuildingList;
+GLuint	StandList;
+GLuint  ArmsUpLeanRightList;
+GLuint	SignalList;
+GLuint  SigCircleList;
+GLuint	JumpList;
+GLuint	PrepJumpList;
+GLuint	WalkLeftList;
+GLuint	WalkRightList;
+GLuint	BatList;
+GLuint	WallList;
+GLuint	RoadList;
+GLuint	ManBat;
+GLuint	BatWingList;
 int		DebugOn;				// != 0 means to print debugging info
 int		DepthCueOn;				// != 0 means to use intensity depth cueing
 int		DepthBufferOn;			// != 0 means to use the z-buffer
@@ -218,44 +239,44 @@ float	temp_time;
 
 
 // function prototypes:
-void	Animate( );
-void	Display( );
-void	DoAxesMenu( int );
-void	DoColorMenu( int );
+void	Animate();
+void	Display();
+void	DoAxesMenu(int);
+void	DoColorMenu(int);
 void	DoLightColorMenu(int);
 void	DoLightTypeMenu(int);
-void	DoDepthBufferMenu( int );
-void	DoDepthFightingMenu( int );
-void	DoDepthMenu( int );
+void	DoDepthBufferMenu(int);
+void	DoDepthFightingMenu(int);
+void	DoDepthMenu(int);
 void	DoViewMenu(int);
-void	DoDebugMenu( int );
-void	DoMainMenu( int );
-void	DoProjectMenu( int );
-void	DoRasterString( float, float, float, char * );
-void	DoStrokeString( float, float, float, float, char * );
-float	ElapsedSeconds( );
-void	InitGraphics( );
-void	InitLists( );
-void	InitMenus( );
-void	Keyboard( unsigned char, int, int );
-void	MouseButton( int, int, int, int );
-void	MouseMotion( int, int );
-void	Reset( );
-void	Resize( int, int );
-void	Visibility( int );
+void	DoDebugMenu(int);
+void	DoMainMenu(int);
+void	DoProjectMenu(int);
+void	DoRasterString(float, float, float, char*);
+void	DoStrokeString(float, float, float, float, char*);
+float	ElapsedSeconds();
+void	InitGraphics();
+void	InitLists();
+void	InitMenus();
+void	Keyboard(unsigned char, int, int);
+void	MouseButton(int, int, int, int);
+void	MouseMotion(int, int);
+void	Reset();
+void	Resize(int, int);
+void	Visibility(int);
 
-void			Axes( float );
-void			HsvRgb( float[3], float [3] );
+void			Axes(float);
+void			HsvRgb(float[3], float[3]);
 void			Cross(float[3], float[3], float[3]);
-float			Dot(float [3], float [3]);
-float			Unit(float [3], float [3]);
-float			Unit(float [3]);
+float			Dot(float[3], float[3]);
+float			Unit(float[3], float[3]);
+float			Unit(float[3]);
 
 
 // utility to create an array from 3 separate values:
 
-float *
-Array3( float a, float b, float c )
+float*
+Array3(float a, float b, float c)
 {
 	static float array[4];
 
@@ -268,8 +289,8 @@ Array3( float a, float b, float c )
 
 // utility to create an array from a multiplier and an array:
 
-float *
-MulArray3( float factor, float array0[ ] )
+float*
+MulArray3(float factor, float array0[])
 {
 	static float array[4];
 
@@ -281,8 +302,8 @@ MulArray3( float factor, float array0[ ] )
 }
 
 
-float *
-MulArray3(float factor, float a, float b, float c )
+float*
+MulArray3(float factor, float a, float b, float c)
 {
 	static float array[4];
 
@@ -296,28 +317,28 @@ MulArray3(float factor, float a, float b, float c )
 
 
 float
-Ranf( float low, float high )
+Ranf(float low, float high)
 {
-        float r = (float) rand();               // 0 - RAND_MAX
-        float t = r  /  (float) RAND_MAX;       // 0. - 1.
+	float r = (float)rand();               // 0 - RAND_MAX
+	float t = r / (float)RAND_MAX;       // 0. - 1.
 
-        return   low  +  t * ( high - low );
+	return   low + t * (high - low);
 }
 
 // call this if you want to force your program to use
 // a different random number sequence every time you run it:
 void
-TimeOfDaySeed( )
+TimeOfDaySeed()
 {
 	struct tm y2k;
 	y2k.tm_hour = 0;    y2k.tm_min = 0; y2k.tm_sec = 0;
 	y2k.tm_year = 2000; y2k.tm_mon = 0; y2k.tm_mday = 1;
 
 	time_t  now;
-	time( &now );
-	double seconds = difftime( now, mktime(&y2k) );
-	unsigned int seed = (unsigned int)( 1000.*seconds );    // milliseconds
-	srand( seed );
+	time(&now);
+	double seconds = difftime(now, mktime(&y2k));
+	unsigned int seed = (unsigned int)(1000. * seconds);    // milliseconds
+	srand(seed);
 }
 
 // these are here for when you need them -- just uncomment the ones you need:
@@ -327,58 +348,71 @@ TimeOfDaySeed( )
 #include "osusphere.cpp"
 #include "osucone.cpp"
 #include "osutorus.cpp"
-//#include "bmptotexture.cpp"
+#include "bmptotexture.cpp"
 #include "loadobjfile.cpp"
 #include "keytime.cpp"
-//#include "glslprogram.cpp"
-//#include "vertexbufferobject.cpp"
+#include "glslprogram.cpp"
+#include "vertexbufferobject.cpp"
 
-Keytimes Xpos1, Xrot1;//cup
-Keytimes Xpos2, Xrot2;//spoon
-Keytimes Xpos3, Xrot3;//eye
-Keytimes Ypos1, Yrot1;//cup
-Keytimes Ypos2, Yrot2;//spoon
-Keytimes Ypos3, Yrot3;//eye
-Keytimes Zpos1, Zrot1;//cup
-Keytimes Zpos2, Zrot2;//spoon
-Keytimes Zpos3, Zrot3;//eye
-Keytimes Xpos4;//coffee in cup radius
-Keytimes Ypos4;//coffee pouring length
+
+Keytimes batMan;
+Keytimes Xpos1, Xrot1;//bat man
+Keytimes Xpos2, Xrot2;//bat
+Keytimes Ypos1, Yrot1;//bat man
+Keytimes Ypos2, Yrot2;//bat
+Keytimes Zpos1, Zrot1;//bat man
+Keytimes Zpos2, Zrot2;//bat
+Keytimes WingX; //batwing x pos
+Keytimes WingY; //batwing y pos
+Keytimes WingZ; //batwing z pos
+Keytimes SigOn;//turn on bat signal
+Keytimes SigX;//bat signal point at x -- also coordinates for the symbol
+Keytimes SigY;//bat signal point at y -- also coordinates for the symbol
+Keytimes SigZ;//bat signal point at z -- also coordinates for the symbol
+Keytimes SpotX;
+Keytimes SpotY;
+Keytimes SpotZ;
+Keytimes Symbol;//symbol appears timing
+Keytimes EyeX;
+Keytimes EyeY;
+Keytimes EyeZ;
+
+
 
 
 // main program:
 
 int
-main( int argc, char *argv[ ] )
+main(int argc, char* argv[])
 {
 	// turn on the glut package:
 	// (do this before checking argc and argv since glutInit might
 	// pull some command line arguments out)
 
-	glutInit( &argc, argv );
+	glutInit(&argc, argv);
 
 	// setup all the graphics stuff:
 
-	InitGraphics( );
+	InitGraphics();
 
 	// create the display lists that **will not change**:
 
-	InitLists( );
+	InitLists();
 
 	// init all the global variables used by Display( ):
 	// this will also post a redisplay
 
-	Reset( );
+	Reset();
 
 	// setup all the user interface stuff:
 
-	InitMenus( );
+	InitMenus();
 
 	// draw the scene once and wait for some interaction:
 	// (this will never return)
 
-	glutSetWindow( MainWindow );
-	glutMainLoop( );
+	glutSetWindow(MainWindow);
+	glutMainLoop();
 
 	// glutMainLoop( ) never actually returns
 	// the following line is here to make the compiler happy:
@@ -395,7 +429,7 @@ main( int argc, char *argv[ ] )
 // do not call Display( ) from here -- let glutPostRedisplay( ) do it
 
 void
-Animate( )
+Animate()
 {
 	// put animation stuff in here -- change some global variables for Display( ) to find:
 
@@ -407,164 +441,186 @@ Animate( )
 
 	// force a call to Display( ) next time it is convenient:
 
-	glutSetWindow( MainWindow );
-	glutPostRedisplay( );
+	glutSetWindow(MainWindow);
+	glutPostRedisplay();
 }
 
 
 // draw the complete scene:
 
 void
-Display( )
+Display()
 {
 	if (DebugOn != 0)
 		fprintf(stderr, "Starting Display.\n");
 
 	// set which window we want to do the graphics into:
-	glutSetWindow( MainWindow );
+	glutSetWindow(MainWindow);
 
 	// erase the background:
-	glDrawBuffer( GL_BACK );
-	glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
+	glDrawBuffer(GL_BACK);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-	glEnable( GL_DEPTH_TEST );
+	glEnable(GL_DEPTH_TEST);
 #ifdef DEMO_DEPTH_BUFFER
-	if( DepthBufferOn == 0 )
-		glDisable( GL_DEPTH_TEST );
+	if (DepthBufferOn == 0)
+		glDisable(GL_DEPTH_TEST);
 #endif
 
 
 	// specify shading to be flat:
 
-	glShadeModel( GL_FLAT );
+	glShadeModel(GL_FLAT);
 
 	// set the viewport to be a square centered in the window:
 
-	GLsizei vx = glutGet( GLUT_WINDOW_WIDTH );
-	GLsizei vy = glutGet( GLUT_WINDOW_HEIGHT );
+	GLsizei vx = glutGet(GLUT_WINDOW_WIDTH);
+	GLsizei vy = glutGet(GLUT_WINDOW_HEIGHT);
 	GLsizei v = vx < vy ? vx : vy;			// minimum dimension
-	GLint xl = ( vx - v ) / 2;
-	GLint yb = ( vy - v ) / 2;
-	glViewport( xl, yb,  v, v );
+	GLint xl = (vx - v) / 2;
+	GLint yb = (vy - v) / 2;
+	glViewport(xl, yb, v, v);
 
 
 	// set the viewing volume:
 	// remember that the Z clipping  values are given as DISTANCES IN FRONT OF THE EYE
 	// USE gluOrtho2D( ) IF YOU ARE DOING 2D !
 
-	glMatrixMode( GL_PROJECTION );
-	glLoadIdentity( );
-	if( NowProjection == ORTHO )
-		glOrtho( -2.f, 2.f,     -2.f, 2.f,     0.1f, 1000.f );
+	glMatrixMode(GL_PROJECTION);
+	glLoadIdentity();
+	if (NowProjection == ORTHO)
+		glOrtho(-2.f, 2.f, -2.f, 2.f, 0.1f, 1000.f);
 	else
-		gluPerspective( 70.f, 1.f,	0.1f, 1000.f );
+		gluPerspective(70.f, 1.f, 0.1f, 1000.f);
 
 	// place the objects into the scene:
 
-	glMatrixMode( GL_MODELVIEW );
-	glLoadIdentity( );
+	glMatrixMode(GL_MODELVIEW);
+	glLoadIdentity();
 
 	// set the eye position, look-at position, and up-vector:
 
-	//gluLookAt( 0.f, 30.f, 20.f,     0.f, 0.f, 0.f,     0.f, 1.f, 0.f );
+	gluLookAt(0.f, 0.f, 3.f, 0.f, 0.f, 0.f, 0.f, 1.f, 0.f);
 
 	// rotate the scene:
 
-	glRotatef( (GLfloat)Yrot, 0.f, 1.f, 0.f );
-	glRotatef( (GLfloat)Xrot, 1.f, 0.f, 0.f );
+	glRotatef((GLfloat)Yrot, 0.f, 1.f, 0.f);
+	glRotatef((GLfloat)Xrot, 1.f, 0.f, 0.f);
 
 	// uniformly scale the scene:
 
-	if( Scale < MINSCALE )
+	if (Scale < MINSCALE)
 		Scale = MINSCALE;
-	glScalef( (GLfloat)Scale, (GLfloat)Scale, (GLfloat)Scale );
+	glScalef((GLfloat)Scale, (GLfloat)Scale, (GLfloat)Scale);
 
 	// set the fog parameters:
 
-	if( DepthCueOn != 0 )
+	if (DepthCueOn != 0)
 	{
-		glFogi( GL_FOG_MODE, FOGMODE );
-		glFogfv( GL_FOG_COLOR, FOGCOLOR );
-		glFogf( GL_FOG_DENSITY, FOGDENSITY );
-		glFogf( GL_FOG_START, FOGSTART );
-		glFogf( GL_FOG_END, FOGEND );
-		glEnable( GL_FOG );
+		glFogi(GL_FOG_MODE, FOGMODE);
+		glFogfv(GL_FOG_COLOR, FOGCOLOR);
+		glFogf(GL_FOG_DENSITY, FOGDENSITY);
+		glFogf(GL_FOG_START, FOGSTART);
+		glFogf(GL_FOG_END, FOGEND);
+		glEnable(GL_FOG);
 	}
 	else
 	{
-		glDisable( GL_FOG );
+		glDisable(GL_FOG);
 	}
 
 	// possibly draw the axes:
 
-	if( AxesOn != 0 )
-	{
-		glColor3fv( &Colors[NowColor][0] );
-		glCallList( AxesList );
-	}
 
-	// to select lighting color &Colors[LightColor][0]
-
-	
-	// since we are using glScalef( ), be sure the normals get unitized:
-
-	glEnable( GL_NORMALIZE );
+	glEnable(GL_NORMALIZE);
 	int msec = glutGet(GLUT_ELAPSED_TIME) % MSEC;
 	float nowTime = (float)msec / 1000.;
-	gluLookAt(Xpos3.GetValue(nowTime), Ypos3.GetValue(nowTime), Zpos3.GetValue(nowTime), 0.f, 0.f, 0.f, 0.f, 1.f, 0.f);
-	int r = 20;
-	float degree_O = 360 * Time;
-	float radian_O = degree_O * (M_PI / 180);
+	//make view into time coordinates
+	gluLookAt(EyeX.GetValue(nowTime), EyeY.GetValue(nowTime), EyeZ.GetValue(nowTime), 0.f, 0.f, 0.f, 0.f, 1.f, 0.f);
 
-	float x = r * cos(radian_O);
-	float z = r * sin(radian_O);
-	float temp_y = cos(radian_O) * 7;
-	float y = temp_y + 12;
 
-	if (NowLight == 0)
-		SetPointLight(GL_LIGHT0, 0, 20, 20, *&Colors[LightColor][0], *&Colors[LightColor][1], *&Colors[LightColor][2]);
-	if(NowLight == 1)
-		SetSpotLight(GL_LIGHT0, x, y, z, -x,-y,-z, *&Colors[LightColor][0], *&Colors[LightColor][1], *&Colors[LightColor][2]);
 
+
+	//make spotlight on and spotlight position into time coordinates
 	glEnable(GL_LIGHTING);
-	glEnable(GL_LIGHT0);
+
+	if (SigOn.GetValue(nowTime) < 1) {
+		SetPointLight(GL_LIGHT0, 0, 50, 20, 1, 1, 1);
+		SetSpotLight(GL_LIGHT1, 100, 250, 0, SpotX.GetValue(nowTime), SpotY.GetValue(nowTime), SpotZ.GetValue(nowTime), 1, 1, 0);
+		glEnable(GL_LIGHT1);
+		glEnable(GL_LIGHT0);
+
+	}
+	else {
+		glDisable(GL_LIGHT1);
+		SetPointLight(GL_LIGHT0, 0, 50, 20, 1, 1, 1);
+		glEnable(GL_LIGHT0);
+	}
+
+
+	
 	glShadeModel(GL_SMOOTH);
-	//set grid
-	SetMaterial(1.0f, 0.5f, 0.0f, 20);
-	glCallList(GridDL);
-	//draw cup
+
+	
+	//draw bat man
+	float rounded = round(nowTime);
+	float remainder2 = remainder(rounded, 2);
+	float remainder3 = remainder(rounded, 3);
+	
+	float batBodTracker = batMan.GetValue(nowTime);
+	
+
 	glPushMatrix();
 		glTranslatef(Xpos1.GetValue(nowTime), Ypos1.GetValue(nowTime), Zpos1.GetValue(nowTime));
-		glCallList(CupList);
+		glRotatef(Yrot1.GetValue(nowTime), 0.0f, 1.0f, 0.0f);
+			if ((batBodTracker <= 1.5) && (batBodTracker > 0)) {
+				glCallList(WalkRightList);
+			}
+			else if( batBodTracker > 1.5) {
+				glCallList(WalkLeftList);
+			}
+			else {
+				glCallList(StandList);
+			}
+		//fprintf(stderr, "batMan return: %f", batMan.GetValue(nowTime));
 	glPopMatrix();
-	//draw espresso machine
-	glCallList(EspressoList);
-	//draw spoon
+
+	//draw bat symbol in signal spotlight
+	if (SigOn.GetValue(nowTime) > 1) {
+		glPushMatrix();
+			glTranslatef(SigX.GetValue(nowTime), SigY.GetValue(nowTime), SigZ.GetValue(nowTime));
+			glCallList(SigCircleList);
+			glCallList(SignalList);
+		glPopMatrix();
+	}
+	//draw building
+	glCallList(BuildingList);
+	glCallList(WallList);
+	glCallList(RoadList);
+	//draw bat
 	glPushMatrix();
-		glTranslatef(-5, 0, 6);
-		glTranslatef(Xpos2.GetValue(nowTime), Ypos2.GetValue(nowTime), 0);
-		glRotatef(Xrot2.GetValue(nowTime), 1., 0., 0.);
-		//printf("%f",Xrot2.GetValue(nowTime));
-		glCallList(SpoonList);
+	glTranslatef(Xpos2.GetValue(nowTime), Ypos2.GetValue(nowTime), Zpos2.GetValue(nowTime));
+	glRotatef(Zrot2.GetValue(nowTime), 0., 0., 1.);
+	glCallList(BatList);
 	glPopMatrix();
 
 
 	glDisable(GL_LIGHTING);
-	
+
 
 
 	// draw the box object by calling up its display list:
 
 	//glCallList( BoxList );
-	
+
 
 #ifdef DEMO_Z_FIGHTING
-	if( DepthFightingOn != 0 )
+	if (DepthFightingOn != 0)
 	{
-		glPushMatrix( );
-			glRotatef( 90.f,   0.f, 1.f, 0.f );
-			glCallList( BoxList );
-		glPopMatrix( );
+		glPushMatrix();
+		glRotatef(90.f, 0.f, 1.f, 0.f);
+		glCallList(BoxList);
+		glPopMatrix();
 	}
 #endif
 
@@ -574,8 +630,8 @@ Display( )
 	// a good use for thefirst one might be to have your name on the screen
 	// a good use for the second one might be to have vertex numbers on the screen alongside each vertex
 
-	glDisable( GL_DEPTH_TEST );
-	glColor3f( 0.f, 1.f, 1.f );
+	glDisable(GL_DEPTH_TEST);
+	glColor3f(0.f, 1.f, 1.f);
 	//DoRasterString( 0.f, 1.f, 0.f, (char *)"Text That Moves" );
 
 
@@ -589,43 +645,43 @@ Display( )
 	// the modelview matrix is reset to identity as we don't
 	// want to transform these coordinates
 
-	glDisable( GL_DEPTH_TEST );
-	glMatrixMode( GL_PROJECTION );
-	glLoadIdentity( );
-	gluOrtho2D( 0.f, 100.f,     0.f, 100.f );
-	glMatrixMode( GL_MODELVIEW );
-	glLoadIdentity( );
-	glColor3f( 1.f, 1.f, 1.f );
+	glDisable(GL_DEPTH_TEST);
+	glMatrixMode(GL_PROJECTION);
+	glLoadIdentity();
+	gluOrtho2D(0.f, 100.f, 0.f, 100.f);
+	glMatrixMode(GL_MODELVIEW);
+	glLoadIdentity();
+	glColor3f(1.f, 1.f, 1.f);
 	//DoRasterString( 5.f, 5.f, 0.f, (char *)"Text That Doesn't" );
 
 	// swap the double-buffered framebuffers:
 
-	glutSwapBuffers( );
+	glutSwapBuffers();
 
 	// be sure the graphics buffer has been sent:
 	// note: be sure to use glFlush( ) here, not glFinish( ) !
 
-	glFlush( );
+	glFlush();
 }
 
 
 void
-DoAxesMenu( int id )
+DoAxesMenu(int id)
 {
 	AxesOn = id;
 
-	glutSetWindow( MainWindow );
-	glutPostRedisplay( );
+	glutSetWindow(MainWindow);
+	glutPostRedisplay();
 }
 
 
 void
-DoColorMenu( int id )
+DoColorMenu(int id)
 {
 	NowColor = id - RED;
 
-	glutSetWindow( MainWindow );
-	glutPostRedisplay( );
+	glutSetWindow(MainWindow);
+	glutPostRedisplay();
 }
 
 void
@@ -647,97 +703,97 @@ DoLightColorMenu(int id)
 }
 
 void
-DoDebugMenu( int id )
+DoDebugMenu(int id)
 {
 	DebugOn = id;
 
-	glutSetWindow( MainWindow );
-	glutPostRedisplay( );
+	glutSetWindow(MainWindow);
+	glutPostRedisplay();
 }
 
 
 void
-DoDepthBufferMenu( int id )
+DoDepthBufferMenu(int id)
 {
 	DepthBufferOn = id;
 
-	glutSetWindow( MainWindow );
-	glutPostRedisplay( );
+	glutSetWindow(MainWindow);
+	glutPostRedisplay();
 }
 
 
 void
-DoDepthFightingMenu( int id )
+DoDepthFightingMenu(int id)
 {
 	DepthFightingOn = id;
 
-	glutSetWindow( MainWindow );
-	glutPostRedisplay( );
+	glutSetWindow(MainWindow);
+	glutPostRedisplay();
 }
 
 
 void
-DoDepthMenu( int id )
+DoDepthMenu(int id)
 {
 	DepthCueOn = id;
 
-	glutSetWindow( MainWindow );
-	glutPostRedisplay( );
+	glutSetWindow(MainWindow);
+	glutPostRedisplay();
 }
 
 
 // main menu callback:
 
 void
-DoMainMenu( int id )
+DoMainMenu(int id)
 {
-	switch( id )
+	switch (id)
 	{
 
-		case RESET:
-			Reset( );
-			break;
+	case RESET:
+		Reset();
+		break;
 
-		case QUIT:
-			// gracefully close out the graphics:
-			// gracefully close the graphics window:
-			// gracefully exit the program:
-			glutSetWindow( MainWindow );
-			glFinish( );
-			glutDestroyWindow( MainWindow );
-			exit( 0 );
-			break;
+	case QUIT:
+		// gracefully close out the graphics:
+		// gracefully close the graphics window:
+		// gracefully exit the program:
+		glutSetWindow(MainWindow);
+		glFinish();
+		glutDestroyWindow(MainWindow);
+		exit(0);
+		break;
 
-		default:
-			fprintf( stderr, "Don't know what to do with Main Menu ID %d\n", id );
+	default:
+		fprintf(stderr, "Don't know what to do with Main Menu ID %d\n", id);
 	}
 
-	glutSetWindow( MainWindow );
-	glutPostRedisplay( );
+	glutSetWindow(MainWindow);
+	glutPostRedisplay();
 }
 
 
 void
-DoProjectMenu( int id )
+DoProjectMenu(int id)
 {
 	NowProjection = id;
 
-	glutSetWindow( MainWindow );
-	glutPostRedisplay( );
+	glutSetWindow(MainWindow);
+	glutPostRedisplay();
 }
 
 
 // use glut to display a string of characters using a raster font:
 
 void
-DoRasterString( float x, float y, float z, char *s )
+DoRasterString(float x, float y, float z, char* s)
 {
-	glRasterPos3f( (GLfloat)x, (GLfloat)y, (GLfloat)z );
+	glRasterPos3f((GLfloat)x, (GLfloat)y, (GLfloat)z);
 
 	char c;			// one character to print
-	for( ; ( c = *s ) != '\0'; s++ )
+	for (; (c = *s) != '\0'; s++)
 	{
-		glutBitmapCharacter( GLUT_BITMAP_TIMES_ROMAN_24, c );
+		glutBitmapCharacter(GLUT_BITMAP_TIMES_ROMAN_24, c);
 	}
 }
 
@@ -745,29 +801,29 @@ DoRasterString( float x, float y, float z, char *s )
 // use glut to display a string of characters using a stroke font:
 
 void
-DoStrokeString( float x, float y, float z, float ht, char *s )
+DoStrokeString(float x, float y, float z, float ht, char* s)
 {
-	glPushMatrix( );
-		glTranslatef( (GLfloat)x, (GLfloat)y, (GLfloat)z );
-		float sf = ht / ( 119.05f + 33.33f );
-		glScalef( (GLfloat)sf, (GLfloat)sf, (GLfloat)sf );
-		char c;			// one character to print
-		for( ; ( c = *s ) != '\0'; s++ )
-		{
-			glutStrokeCharacter( GLUT_STROKE_ROMAN, c );
-		}
-	glPopMatrix( );
+	glPushMatrix();
+	glTranslatef((GLfloat)x, (GLfloat)y, (GLfloat)z);
+	float sf = ht / (119.05f + 33.33f);
+	glScalef((GLfloat)sf, (GLfloat)sf, (GLfloat)sf);
+	char c;			// one character to print
+	for (; (c = *s) != '\0'; s++)
+	{
+		glutStrokeCharacter(GLUT_STROKE_ROMAN, c);
+	}
+	glPopMatrix();
 }
 
 
 // return the number of seconds since the start of the program:
 
 float
-ElapsedSeconds( )
+ElapsedSeconds()
 {
 	// get # of milliseconds since the start of the program:
 
-	int ms = glutGet( GLUT_ELAPSED_TIME );
+	int ms = glutGet(GLUT_ELAPSED_TIME);
 
 	// convert it to seconds:
 
@@ -780,7 +836,7 @@ ElapsedSeconds( )
 //	also setup callback functions
 
 void
-InitGraphics( )
+InitGraphics()
 {
 	if (DebugOn != 0)
 		fprintf(stderr, "Starting InitGraphics.\n");
@@ -788,21 +844,21 @@ InitGraphics( )
 	// request the display modes:
 	// ask for red-green-blue-alpha color, double-buffering, and z-buffering:
 
-	glutInitDisplayMode( GLUT_RGBA | GLUT_DOUBLE | GLUT_DEPTH );
+	glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE | GLUT_DEPTH);
 
 	// set the initial window configuration:
 
-	glutInitWindowPosition( 0, 0 );
-	glutInitWindowSize( INIT_WINDOW_SIZE, INIT_WINDOW_SIZE );
+	glutInitWindowPosition(0, 0);
+	glutInitWindowSize(INIT_WINDOW_SIZE, INIT_WINDOW_SIZE);
 
 	// open the window and set its title:
 
-	MainWindow = glutCreateWindow( WINDOWTITLE );
-	glutSetWindowTitle( WINDOWTITLE );
+	MainWindow = glutCreateWindow(WINDOWTITLE);
+	glutSetWindowTitle(WINDOWTITLE);
 
 	// set the framebuffer clear values:
 
-	glClearColor( BACKCOLOR[0], BACKCOLOR[1], BACKCOLOR[2], BACKCOLOR[3] );
+	glClearColor(BACKCOLOR[0], BACKCOLOR[1], BACKCOLOR[2], BACKCOLOR[3]);
 
 	// setup the callback functions:
 	// DisplayFunc -- redraw the window
@@ -825,68 +881,260 @@ InitGraphics( )
 	// TimerFunc -- trigger something to happen a certain time from now
 	// IdleFunc -- what to do when nothing else is going on
 
-	glutSetWindow( MainWindow );
-	glutDisplayFunc( Display );
-	glutReshapeFunc( Resize );
-	glutKeyboardFunc( Keyboard );
-	glutMouseFunc( MouseButton );
-	glutMotionFunc( MouseMotion );
+	glutSetWindow(MainWindow);
+	glutDisplayFunc(Display);
+	glutReshapeFunc(Resize);
+	glutKeyboardFunc(Keyboard);
+	glutMouseFunc(MouseButton);
+	glutMotionFunc(MouseMotion);
 	glutPassiveMotionFunc(MouseMotion);
 	//glutPassiveMotionFunc( NULL );
-	glutVisibilityFunc( Visibility );
-	glutEntryFunc( NULL );
-	glutSpecialFunc( NULL );
-	glutSpaceballMotionFunc( NULL );
-	glutSpaceballRotateFunc( NULL );
-	glutSpaceballButtonFunc( NULL );
-	glutButtonBoxFunc( NULL );
-	glutDialsFunc( NULL );
-	glutTabletMotionFunc( NULL );
-	glutTabletButtonFunc( NULL );
-	glutMenuStateFunc( NULL );
-	glutTimerFunc( -1, NULL, 0 );
+	glutVisibilityFunc(Visibility);
+	glutEntryFunc(NULL);
+	glutSpecialFunc(NULL);
+	glutSpaceballMotionFunc(NULL);
+	glutSpaceballRotateFunc(NULL);
+	glutSpaceballButtonFunc(NULL);
+	glutButtonBoxFunc(NULL);
+	glutDialsFunc(NULL);
+	glutTabletMotionFunc(NULL);
+	glutTabletButtonFunc(NULL);
+	glutMenuStateFunc(NULL);
+	glutTimerFunc(-1, NULL, 0);
 
-	Xpos1.Init(); //cup
+	Xpos1.Init(); // bat man
 	Xpos1.AddTimeValue(0.0, 0.000);
-	Xpos1.AddTimeValue(0.5, 1.000);
-	Xpos1.AddTimeValue(2.0, 2.500);
-	Xpos1.AddTimeValue(5.0, 2.500);
-	Xpos1.AddTimeValue(8.0, 1.000);
-	Xpos1.AddTimeValue(10.0, 0.000);
-	Xpos1.AddTimeValue(12.0, 0.000);
-	Xpos1.AddTimeValue(14.0, 0.000);
-	Xpos1.AddTimeValue(16.0, 0.000);
-	Xpos1.AddTimeValue(18.0, 0.000);
+	Xpos1.AddTimeValue(0.5, 0.000);
+	Xpos1.AddTimeValue(1.0, 0.000);
+	Xpos1.AddTimeValue(2.0, 0.000);
+	Xpos1.AddTimeValue(2.5, 0.000);
+	Xpos1.AddTimeValue(3.0, 0.000);
+	Xpos1.AddTimeValue(3.5, 0.000);
+	Xpos1.AddTimeValue(4.0, 0.000);
+	Xpos1.AddTimeValue(4.5, 0.000);
 
-	Ypos1.Init();
-	Ypos1.AddTimeValue(0.0, 0.000);
-	Ypos1.AddTimeValue(0.5, 1.000);
-	Ypos1.AddTimeValue(2.0, 2.000);
-	Ypos1.AddTimeValue(5.0, 2.000);
-	Ypos1.AddTimeValue(8.0, 1.000);
-	Ypos1.AddTimeValue(10.0, 0.000);
-	Ypos1.AddTimeValue(12.0, 0.000);
-	Ypos1.AddTimeValue(14.0, 0.000);
-	Ypos1.AddTimeValue(16.0, 0.000);
-	Ypos1.AddTimeValue(18.0, 0.000);
+	Ypos1.Init();//bat man
+	Ypos1.AddTimeValue(0.0, 0);
+	Ypos1.AddTimeValue(.5, 2);
+	Ypos1.AddTimeValue(1.0, 0);
+	Ypos1.AddTimeValue(1.5, 2);
+	Ypos1.AddTimeValue(2.0, 0);
+	Ypos1.AddTimeValue(2.5, 2);
+	Ypos1.AddTimeValue(3.0, 0);
+	Ypos1.AddTimeValue(3.5, 2);
+	Ypos1.AddTimeValue(4.0, 0);
+	Ypos1.AddTimeValue(4.5, 2);
+	Ypos1.AddTimeValue(5.0, 0);
+	Ypos1.AddTimeValue(5.5, 2);
+	Ypos1.AddTimeValue(6.0, 0);
+	Ypos1.AddTimeValue(6.5, 2);
+	Ypos1.AddTimeValue(7.0, 0);
+	Ypos1.AddTimeValue(7.5, 2);
+	Ypos1.AddTimeValue(8.0, 0);
+	Ypos1.AddTimeValue(8.5, 2);
+	Ypos1.AddTimeValue(9.0, 0);
+	Ypos1.AddTimeValue(9.5, 0);
+	Ypos1.AddTimeValue(10.0, 0);
+	Ypos1.AddTimeValue(10.5, 0);
+	Ypos1.AddTimeValue(11.0, 0);
+	Ypos1.AddTimeValue(11.5, 0);
 
-	Zpos1.Init();
-	Zpos1.AddTimeValue(0.0, 0.000);
-	Zpos1.AddTimeValue(0.5, -1.000);
-	Zpos1.AddTimeValue(2.0, -5.00);
-	Zpos1.AddTimeValue(5.0, -5.00);
-	Zpos1.AddTimeValue(8.0, -2.00);
-	Zpos1.AddTimeValue(10.0, -1.00);
-	Zpos1.AddTimeValue(12.0, -0.500);
-	Zpos1.AddTimeValue(14.0, 0.000);
-	Zpos1.AddTimeValue(16.0, 0.000);
-	Zpos1.AddTimeValue(18.0, 0.000);
+	Zpos1.Init();// bat man Z
+	Zpos1.Init();//bat man list
+	Zpos1.AddTimeValue(0.0, -200.);
+	Zpos1.AddTimeValue(.5, -190.);
+	Zpos1.AddTimeValue(1.0, -180.);
+	Zpos1.AddTimeValue(1.5, -170.);
+	Zpos1.AddTimeValue(2.0, -160.);
+	Zpos1.AddTimeValue(2.5, -150.);
+	Zpos1.AddTimeValue(3.0, -140.);
+	Zpos1.AddTimeValue(3.5, -130.);
+	Zpos1.AddTimeValue(4.0, -120.);
+	Zpos1.AddTimeValue(4.5, -110.);
+	Zpos1.AddTimeValue(5.0, -100.);
+	Zpos1.AddTimeValue(5.5, -90.);
+	Zpos1.AddTimeValue(6.0, -80.);
+	Zpos1.AddTimeValue(6.5, -70.);
+	Zpos1.AddTimeValue(7.0, -60.);
+	Zpos1.AddTimeValue(7.5, -50.);
+	Zpos1.AddTimeValue(8.0, -40.);
+	Zpos1.AddTimeValue(8.5, -30.);
+	Zpos1.AddTimeValue(9.0, -20.);
+	Zpos1.AddTimeValue(9.5, -20.);
+	Zpos1.AddTimeValue(10.0, -20.);
+	Zpos1.AddTimeValue(10.5, -20.);
+	Zpos1.AddTimeValue(11.0, -20.);
+	Zpos1.AddTimeValue(11.5, -20.);
+
+	Yrot1.Init();//bat man
+	Yrot1.AddTimeValue(0.0, 0); //Walking
+	Yrot1.AddTimeValue(0.5, 0);
+	Yrot1.AddTimeValue(1.0, 0);
+	Yrot1.AddTimeValue(1.5, 0);
+	Yrot1.AddTimeValue(2.0, 0);
+	Yrot1.AddTimeValue(2.5, 0);
+	Yrot1.AddTimeValue(3.0, 0);
+	Yrot1.AddTimeValue(3.5, 0);
+	Yrot1.AddTimeValue(4.0, 0);
+	Yrot1.AddTimeValue(4.5, 0);
+	Yrot1.AddTimeValue(5.0, 0);
+	Yrot1.AddTimeValue(5.5, 0);
+	Yrot1.AddTimeValue(6.0, 0);
+	Yrot1.AddTimeValue(6.5, 0);
+	Yrot1.AddTimeValue(7.0, 0);
+	Yrot1.AddTimeValue(7.5, 0);
+	Yrot1.AddTimeValue(8.0, 0);
+	Yrot1.AddTimeValue(8.5, 0);
+	Yrot1.AddTimeValue(9.0, 0);
+	Yrot1.AddTimeValue(9.5, 45); //Turning
+	Yrot1.AddTimeValue(10.0, 90);
+	Yrot1.AddTimeValue(10.5, 180);
+	Yrot1.AddTimeValue(11.0, 180);//Looking
+	Yrot1.AddTimeValue(11.5, 180);
+
+	batMan.Init();//bat man list
+	batMan.AddTimeValue(0.0, 0.000);//Walking
+	batMan.AddTimeValue(.5, 2.000);
+	batMan.AddTimeValue(1.0, 4.000);
+	batMan.AddTimeValue(1.5, 0.000);
+	batMan.AddTimeValue(2.0, 4.000);
+	batMan.AddTimeValue(2.5, 0.000);
+	batMan.AddTimeValue(3.0, 4.000);
+	batMan.AddTimeValue(3.5, 0.000);
+	batMan.AddTimeValue(4.0, 4.000);
+	batMan.AddTimeValue(4.5, 0.000);
+	batMan.AddTimeValue(5.0, 4.000);
+	batMan.AddTimeValue(5.5, 0.000);
+	batMan.AddTimeValue(6.0, 4.000);
+	batMan.AddTimeValue(6.5, 0.000);
+	batMan.AddTimeValue(7.0, 4.000);
+	batMan.AddTimeValue(7.5, 0.000);
+	batMan.AddTimeValue(8.0, 4.000);
+	batMan.AddTimeValue(8.5, 0.000);
+	batMan.AddTimeValue(9.0, 4.000);
+	batMan.AddTimeValue(9.5, -5.00);//turning standing pose
+	batMan.AddTimeValue(10.0, -5.00);
+	batMan.AddTimeValue(10.5, -5.00);
+	batMan.AddTimeValue(11.0, -5.00);//looking standing pose
+	batMan.AddTimeValue(11.5, -5.00);
 
 
-	Xpos2.Init(); //spoon
+	SigOn.Init();//bat signal spotlight on
+	SigOn.AddTimeValue(0.0, 0.000);
+	SigOn.AddTimeValue(5.0, 0.00);
+	SigOn.AddTimeValue(7.0, 0.000);
+	SigOn.AddTimeValue(8.0, 0.000);
+	SigOn.AddTimeValue(9.0, 4.000);//turning on at 9
+	SigOn.AddTimeValue(10.0, 4.000);
+	SigOn.AddTimeValue(11.0, 4.000);
+	SigOn.AddTimeValue(13.0, 4.000);
+	SigOn.AddTimeValue(14.0, 4.000);
+	SigOn.AddTimeValue(15.0, 4.000);
+	SigOn.AddTimeValue(16.0, 4.000);
+	SigOn.AddTimeValue(18.0, 4.000);
+
+	SpotX.Init();//bat symbol shows in spotlight
+	SpotX.AddTimeValue(0.0, -75.);
+	SpotX.AddTimeValue(5.0, -75.);
+	SpotX.AddTimeValue(7.0, -150.);
+	SpotX.AddTimeValue(8.0, -75.);
+	SpotX.AddTimeValue(9.0, 15.);//Symbol appears at 9
+	SpotX.AddTimeValue(10.0, 15.);
+	SpotX.AddTimeValue(11.0, 15.);
+	SpotX.AddTimeValue(13.0, 15.);
+	SpotX.AddTimeValue(14.0, 15.);
+	SpotX.AddTimeValue(15.0, 15.);
+	SpotX.AddTimeValue(16.0, 15.);
+	SpotX.AddTimeValue(18.0, 15.);
+
+	SpotY.Init();//bat symbol shows in spotlight
+	SpotY.AddTimeValue(0.0, -250);
+	SpotY.AddTimeValue(5.0, -250);
+	SpotY.AddTimeValue(7.0, -250.);
+	SpotY.AddTimeValue(8.0, -250.);
+	SpotY.AddTimeValue(9.0, 100.);//Symbol appears at 9
+	SpotY.AddTimeValue(10.0, 100.);
+	SpotY.AddTimeValue(11.0, 100.);
+	SpotY.AddTimeValue(13.0, 100.);
+	SpotY.AddTimeValue(14.0, 100.);
+	SpotY.AddTimeValue(15.0, 100.);
+	SpotY.AddTimeValue(16.0, 100.);
+	SpotY.AddTimeValue(18.0, 100.);
+
+	SpotZ.Init();//bat symbol shows in spotlight
+	SpotZ.AddTimeValue(0.0, -150.);
+	SpotZ.AddTimeValue(5.0, -350.);
+	SpotZ.AddTimeValue(7.0, -450.);
+	SpotZ.AddTimeValue(8.0, -650);
+	SpotZ.AddTimeValue(9.0, -550.);//Symbol appears at 9
+	SpotZ.AddTimeValue(10.0, -550.);
+	SpotZ.AddTimeValue(11.0, -550.);
+	SpotZ.AddTimeValue(13.0, -550.);
+	SpotZ.AddTimeValue(14.0, -550.);
+	SpotZ.AddTimeValue(15.0, -550.);
+	SpotZ.AddTimeValue(16.0, -550.);
+	SpotZ.AddTimeValue(18.0, -550.);
+
+	SigX.Init();//bat symbol shows in spotlight
+	SigX.AddTimeValue(0.0, 15.);
+	SigX.AddTimeValue(5.0, 15.);
+	SigX.AddTimeValue(7.0, 15.);
+	SigX.AddTimeValue(8.0, 15.);
+	SigX.AddTimeValue(9.0, 15.);//Symbol appears at 9
+	SigX.AddTimeValue(10.0, 15.);
+	SigX.AddTimeValue(11.0, 15.);
+	SigX.AddTimeValue(13.0, 15.);
+	SigX.AddTimeValue(14.0, 15.);
+	SigX.AddTimeValue(15.0, 15.);
+	SigX.AddTimeValue(16.0, 15.);
+	SigX.AddTimeValue(18.0, 15.);
+
+	SigY.Init();//bat symbol shows in spotlight
+	SigY.AddTimeValue(0.0, 100.);
+	SigY.AddTimeValue(5.0, 100.);
+	SigY.AddTimeValue(7.0, 100.);
+	SigY.AddTimeValue(8.0, 100.);
+	SigY.AddTimeValue(9.0, 100.);//Symbol appears at 9
+	SigY.AddTimeValue(10.0, 100.);
+	SigY.AddTimeValue(11.0, 100.);
+	SigY.AddTimeValue(13.0, 100.);
+	SigY.AddTimeValue(14.0, 100.);
+	SigY.AddTimeValue(15.0, 100.);
+	SigY.AddTimeValue(16.0, 100.);
+	SigY.AddTimeValue(18.0, 100.);
+
+	SigZ.Init();//bat symbol shows in spotlight
+	SigZ.AddTimeValue(0.0, -550.);
+	SigZ.AddTimeValue(5.0, -550.);
+	SigZ.AddTimeValue(7.0, -550.);
+	SigZ.AddTimeValue(8.0, -550.);
+	SigZ.AddTimeValue(9.0, -550.);//Symbol appears at 9
+	SigZ.AddTimeValue(10.0, -550.);
+	SigZ.AddTimeValue(11.0, -550.);
+	SigZ.AddTimeValue(13.0, -550.);
+	SigZ.AddTimeValue(14.0, -550.);
+	SigZ.AddTimeValue(15.0, -550.);
+	SigZ.AddTimeValue(16.0, -550.);
+	SigZ.AddTimeValue(18.0, -550.);
+
+	Symbol.Init();//bat symbol shows in spotlight
+	Symbol.AddTimeValue(0.0, 0.000);
+	Symbol.AddTimeValue(5.0, 0.00);
+	Symbol.AddTimeValue(7.0, 0.000);
+	Symbol.AddTimeValue(8.0, 0.000);
+	Symbol.AddTimeValue(9.0, 4.000);//Symbol appears at 9
+	Symbol.AddTimeValue(10.0, 4.000);
+	Symbol.AddTimeValue(11.0, 4.000);
+	Symbol.AddTimeValue(13.0, 4.000);
+	Symbol.AddTimeValue(14.0, 4.000);
+	Symbol.AddTimeValue(15.0, 4.000);
+	Symbol.AddTimeValue(16.0, 4.000);
+	Symbol.AddTimeValue(18.0, 4.000);
+
+	Xpos2.Init(); //Bat Swarm x value
 	Xpos2.AddTimeValue(0.0, 0.000);
 	Xpos2.AddTimeValue(0.5, 0.000);
-	Xpos2.AddTimeValue(2.0, 0.000);
+	Xpos2.AddTimeValue(2.0, -1.000);
 	Xpos2.AddTimeValue(5.0, 0.000);
 	Xpos2.AddTimeValue(8.0, 2.000);
 	Xpos2.AddTimeValue(10.0, 3.000);
@@ -895,96 +1143,134 @@ InitGraphics( )
 	Xpos2.AddTimeValue(16.0, 0.000);
 	Xpos2.AddTimeValue(18.0, 0.000);
 
-	Xrot2.Init();
-	Xrot2.AddTimeValue(0.0, 0.000);
-	Xrot2.AddTimeValue(0.5, 0.000);
-	Xrot2.AddTimeValue(2.0, -45);
-	Xrot2.AddTimeValue(5.0, -90);
-	Xrot2.AddTimeValue(8.0, -90);
-	Xrot2.AddTimeValue(10.0, -90);
-	Xrot2.AddTimeValue(12.0, -45.00);
-	Xrot2.AddTimeValue(14.0, 0.000);
-	Xrot2.AddTimeValue(16.0, 0.000);
-	Xrot2.AddTimeValue(18.0, 0.000);
+	Zrot2.Init();//Bat Swarm x rotation
+	Zrot2.AddTimeValue(0.0, 0.000);
+	Zrot2.AddTimeValue(0.5, 0.000);
+	Zrot2.AddTimeValue(2.0, 45);
+	Zrot2.AddTimeValue(5.0, 90);
+	Zrot2.AddTimeValue(8.0, 135);
+	Zrot2.AddTimeValue(10.0, 180);
+	Zrot2.AddTimeValue(12.0, 225.00);
+	Zrot2.AddTimeValue(14.0, 270.000);
+	Zrot2.AddTimeValue(16.0, 315.000);
+	Zrot2.AddTimeValue(18.0, 0.000);
 
-	Ypos2.Init();
-	Ypos2.AddTimeValue(0.0, 0.000);
-	Ypos2.AddTimeValue(0.5, 2.000);
-	Ypos2.AddTimeValue(2.0, 3.000);
-	Ypos2.AddTimeValue(5.0, 4.000);
-	Ypos2.AddTimeValue(8.0, 5.00);
-	Ypos2.AddTimeValue(10.0, 4.00);
-	Ypos2.AddTimeValue(12.0, 3.00);
-	Ypos2.AddTimeValue(14.0, 3.000);
-	Ypos2.AddTimeValue(16.0, 3.000);
-	Ypos2.AddTimeValue(18.0, 0.000);
+	Ypos2.Init();//Bat Swarm y value
+	Ypos2.AddTimeValue(0.0, 75.000);
+	Ypos2.AddTimeValue(0.5, 75.000);
+	Ypos2.AddTimeValue(2.0, 75.000);
+	Ypos2.AddTimeValue(5.0, 50.000);
+	Ypos2.AddTimeValue(8.0, 50.00);
+	Ypos2.AddTimeValue(10.0, 40.00);
+	Ypos2.AddTimeValue(12.0, 50.00);
+	Ypos2.AddTimeValue(14.0, 50.000);
+	Ypos2.AddTimeValue(16.0, 75.000);
+	Ypos2.AddTimeValue(18.0, 75.000);
 
-	Zpos2.Init();
-	Zpos2.AddTimeValue(0.0, 0.000);
-	Zpos2.AddTimeValue(0.5, 0.000);
-	Zpos2.AddTimeValue(2.0, 0.000);
-	Zpos2.AddTimeValue(5.0, 0.000);
-	Zpos2.AddTimeValue(8.0, 4.000);
-	Zpos2.AddTimeValue(10.0, 4.000);
-	Zpos2.AddTimeValue(12.0, 1.00);
-	Zpos2.AddTimeValue(14.0, 1.000);
-	Zpos2.AddTimeValue(16.0, 0.000);
-	Zpos2.AddTimeValue(18.0, 0.000);
+	Zpos2.Init();// Bat Swarm z value
+	Zpos2.AddTimeValue(0.0, -250.000);
+	Zpos2.AddTimeValue(0.5, -200.000);
+	Zpos2.AddTimeValue(2.0, -200.000);
+	Zpos2.AddTimeValue(5.0, -150.000);
+	Zpos2.AddTimeValue(8.0, -100.000);
+	Zpos2.AddTimeValue(10.0, -75.000);
+	Zpos2.AddTimeValue(12.0, -20.00);
+	Zpos2.AddTimeValue(14.0, -20.000);
+	Zpos2.AddTimeValue(16.0, -20.000);
+	Zpos2.AddTimeValue(18.0, -20.000);
 
-	Xpos3.Init(); //eye
-	Xpos3.AddTimeValue(0.0, 0.000);
-	Xpos3.AddTimeValue(0.5, 0.000);
-	Xpos3.AddTimeValue(2.0, 0.000);
-	Xpos3.AddTimeValue(5.0, 0.000);
-	Xpos3.AddTimeValue(8.0, 0.000);
-	Xpos3.AddTimeValue(10.0, 0.000);
-	Xpos3.AddTimeValue(12.0, 0.000);
-	Xpos3.AddTimeValue(14.0, 0.000);
-	Xpos3.AddTimeValue(16.0, 0.000);
-	Xpos3.AddTimeValue(18.0, 0.000);
-	
-	Ypos3.Init();
-	Ypos3.AddTimeValue(0.0, 30.000);
-	Ypos3.AddTimeValue(0.5, 30.000);
-	Ypos3.AddTimeValue(2.0, 30.000);
-	Ypos3.AddTimeValue(5.0, 30.000);
-	Ypos3.AddTimeValue(8.0, 15.000);
-	Ypos3.AddTimeValue(10.0, 15.000);
-	Ypos3.AddTimeValue(12.0, 15.000);
-	Ypos3.AddTimeValue(14.0, 30.000);
-	Ypos3.AddTimeValue(16.0, 30.000);
-	Ypos3.AddTimeValue(18.0, 30.000);
+	EyeX.Init(); //eye x value
+	EyeX.AddTimeValue(0.0, -10.f);
+	EyeX.AddTimeValue(0.5, -10.f);
+	EyeX.AddTimeValue(2.0, -10.f);
+	EyeX.AddTimeValue(5.0, -10.f);
+	EyeX.AddTimeValue(8.0, -10.f);
+	EyeX.AddTimeValue(10.0, -10.f);
+	EyeX.AddTimeValue(12.0, -10.f);
+	EyeX.AddTimeValue(14.0, -10.f);
+	EyeX.AddTimeValue(16.0, -10.f);
+	EyeX.AddTimeValue(18.0, -10.f);
 
-	Zpos3.Init();
-	Zpos3.AddTimeValue(0.0, 20.00);
-	Zpos3.AddTimeValue(0.5, 20.00);
-	Zpos3.AddTimeValue(2.0, 20.00);
-	Zpos3.AddTimeValue(5.0, 20.00);
-	Zpos3.AddTimeValue(8.0, 15.00);
-	Zpos3.AddTimeValue(10.0, 15.000);
-	Zpos3.AddTimeValue(12.0, 15.000);
-	Zpos3.AddTimeValue(14.0, 20.000);
-	Zpos3.AddTimeValue(16.0, 20.000);
-	Zpos3.AddTimeValue(18.0, 20.000);
+	EyeY.Init();//eye y value
+	EyeY.AddTimeValue(0.0, 10.f);
+	EyeY.AddTimeValue(0.5, 10.f);
+	EyeY.AddTimeValue(2.0, 10.f);
+	EyeY.AddTimeValue(5.0, 10.f);
+	EyeY.AddTimeValue(8.0, 10.f);
+	EyeY.AddTimeValue(10.0, 10.f);
+	EyeY.AddTimeValue(12.0, 50.f);
+	EyeY.AddTimeValue(14.0, 50.f);
+	EyeY.AddTimeValue(16.0, 50.f);
+	EyeY.AddTimeValue(18.0, 50.f);
+
+	EyeZ.Init();// eye z value
+	EyeZ.AddTimeValue(0.0, 50.f);
+	EyeZ.AddTimeValue(0.5, 50.f);
+	EyeZ.AddTimeValue(2.0, 50.f);
+	EyeZ.AddTimeValue(5.0, 50.f);
+	EyeZ.AddTimeValue(8.0, 50.f);
+	EyeZ.AddTimeValue(10.0, 50.f);
+	EyeZ.AddTimeValue(12.0, 100.f);
+	EyeZ.AddTimeValue(14.0, 150.f);
+	EyeZ.AddTimeValue(16.0, 150.f);
+	EyeZ.AddTimeValue(18.0, 150.f);
+
+	WingX.Init(); //BatWing
+	WingX.AddTimeValue(0.0, 0.00);
+	WingX.AddTimeValue(0.5, 0.00);
+	WingX.AddTimeValue(2.0, 0.50);
+	WingX.AddTimeValue(5.0, 0.80);
+	WingX.AddTimeValue(8.0, 0.80);
+	WingX.AddTimeValue(10.0, 0.80);
+	WingX.AddTimeValue(12.0, 0.80);
+	WingX.AddTimeValue(14.0, 0.80);
+	WingX.AddTimeValue(16.0, 0.80);
+	WingX.AddTimeValue(18.0, 0.00);
+
+	WingY.Init();//BatWing
+	WingY.AddTimeValue(0.0, 0.00);
+	WingY.AddTimeValue(0.5, 0.00);
+	WingY.AddTimeValue(2.0, 0.50);
+	WingY.AddTimeValue(5.0, 1.000);
+	WingY.AddTimeValue(8.0, 1.000);
+	WingY.AddTimeValue(10.0, 1.000);
+	WingY.AddTimeValue(12.0, 1.000);
+	WingY.AddTimeValue(14.0, 1.000);
+	WingY.AddTimeValue(16.0, 1.000);
+	WingY.AddTimeValue(18.0, 0.000);
+
+	WingZ.Init();//BatWing Z
+	WingZ.AddTimeValue(0.0, 0.00);
+	WingZ.AddTimeValue(0.5, 0.00);
+	WingZ.AddTimeValue(2.0, 0.50);
+	WingZ.AddTimeValue(5.0, 1.000);
+	WingZ.AddTimeValue(8.0, 1.000);
+	WingZ.AddTimeValue(10.0, 1.000);
+	WingZ.AddTimeValue(12.0, 1.000);
+	WingZ.AddTimeValue(14.0, 1.000);
+	WingZ.AddTimeValue(16.0, 1.000);
+	WingZ.AddTimeValue(18.0, 0.000);
+
+
 
 	// setup glut to call Animate( ) every time it has
 	// 	nothing it needs to respond to (which is most of the time)
 	// we don't need to do this for this program, and really should set the argument to NULL
 	// but, this sets us up nicely for doing animation
 
-	glutIdleFunc( Animate );
+	glutIdleFunc(Animate);
 
 	// init the glew package (a window must be open to do this):
 
 #ifdef WIN32
-	GLenum err = glewInit( );
-	if( err != GLEW_OK )
+	GLenum err = glewInit();
+	if (err != GLEW_OK)
 	{
-		fprintf( stderr, "glewInit Error\n" );
+		fprintf(stderr, "glewInit Error\n");
 	}
 	else
-		fprintf( stderr, "GLEW initialized OK\n" );
-	fprintf( stderr, "Status: Using GLEW %s\n", glewGetString(GLEW_VERSION));
+		fprintf(stderr, "GLEW initialized OK\n");
+	fprintf(stderr, "Status: Using GLEW %s\n", glewGetString(GLEW_VERSION));
 #endif
 
 	// all other setups go here, such as GLSLProgram and KeyTime setups:
@@ -998,107 +1284,73 @@ InitGraphics( )
 //  with a call to glCallList( )
 
 void
-InitLists( )
+InitLists()
 {
 	if (DebugOn != 0)
 		fprintf(stderr, "Starting InitLists.\n");
 
-	float dx = BOXSIZE / 2.f;
-	float dy = BOXSIZE / 2.f;
-	float dz = BOXSIZE / 2.f;
-	glutSetWindow( MainWindow );
+	glutSetWindow(MainWindow);
 
 	// create the object:
 
-	BoxList = glGenLists( 1 );
-	glNewList( BoxList, GL_COMPILE );
 
-		glBegin( GL_QUADS );
-
-			glColor3f( 1., 0., 0. );
-
-				glNormal3f( 1., 0., 0. );
-					glVertex3f(  dx, -dy,  dz );
-					glVertex3f(  dx, -dy, -dz );
-					glVertex3f(  dx,  dy, -dz );
-					glVertex3f(  dx,  dy,  dz );
-
-				glNormal3f(-1., 0., 0.);
-					glVertex3f( -dx, -dy,  dz);
-					glVertex3f( -dx,  dy,  dz );
-					glVertex3f( -dx,  dy, -dz );
-					glVertex3f( -dx, -dy, -dz );
-
-			glColor3f( 0., 1., 0. );
-
-				glNormal3f(0., 1., 0.);
-					glVertex3f( -dx,  dy,  dz );
-					glVertex3f(  dx,  dy,  dz );
-					glVertex3f(  dx,  dy, -dz );
-					glVertex3f( -dx,  dy, -dz );
-
-				glNormal3f(0., -1., 0.);
-					glVertex3f( -dx, -dy,  dz);
-					glVertex3f( -dx, -dy, -dz );
-					glVertex3f(  dx, -dy, -dz );
-					glVertex3f(  dx, -dy,  dz );
-
-			glColor3f(0., 0., 1.);
-
-				glNormal3f(0., 0., 1.);
-					glVertex3f(-dx, -dy, dz);
-					glVertex3f( dx, -dy, dz);
-					glVertex3f( dx,  dy, dz);
-					glVertex3f(-dx,  dy, dz);
-
-				glNormal3f(0., 0., -1.);
-					glVertex3f(-dx, -dy, -dz);
-					glVertex3f(-dx,  dy, -dz);
-					glVertex3f( dx,  dy, -dz);
-					glVertex3f( dx, -dy, -dz);
-
-		glEnd( );
-#ifdef NOTDEF
-		glColor3f(1., 1., 1.);
-		glBegin(GL_TRIANGLES);
-		glVertex3f(-dx, -dy, dz);
-		glVertex3f(0., -dy, dz + 0.5f);
-		glVertex3f(dx, -dy, dz);
-		glEnd();
-#endif
-
-	glEndList( );
 
 
 	// create the axes:
 
-	AxesList = glGenLists( 1 );
-	glNewList( AxesList, GL_COMPILE );
-		glLineWidth( AXES_WIDTH );
-			Axes( 1.5 );
-		glLineWidth( 1. );
-	glEndList( );
+	AxesList = glGenLists(1);
+	glNewList(AxesList, GL_COMPILE);
+	glLineWidth(AXES_WIDTH);
+	Axes(1.5);
+	glLineWidth(1.);
+	glEndList();
 
 	// create the grid
-	#define XSIDE	20			// length of the x side of the grid
+	float XSIDE = 300.f;			// length of the x side of the grid
 	#define X0      (-XSIDE/2.)		// where one side starts
 	#define NX	100			// how many points in x
 	#define DX	( XSIDE/(float)NX )	// change in x between the points
 
 	#define YGRID	0.f			// y-height of the grid
 
-	#define ZSIDE	20			// length of the z side of the grid
+	float ZSIDE = 400.f;			// length of the z side of the grid
 	#define Z0      (-ZSIDE/2.)		// where one side starts
 	#define NZ	100			// how many points in z
 	#define DZ	( ZSIDE/(float)NZ )	// change in z between the points
 
-	GridDL = glGenLists(1);
-	glNewList(GridDL, GL_COMPILE);
-			// or whatever else you want
+	WallList = glGenLists(1);
+	glNewList(WallList, GL_COMPILE);
+	glPushMatrix();
+	// or whatever else you want
+		SetMaterial(0.f, 0.f, 0.f, 80.f);
+		glNormal3f(0., 1., 0.);
+		glTranslatef(0., 100., -600.);
+		glRotatef(90., 1., 0., 0.);
+		for (int i = 0; i < NZ; i++)
+		{
+			glColor3f(0.0f, 0.3f, 0.5f);
+			glBegin(GL_QUAD_STRIP);
+			for (int j = 0; j < NX; j++)
+			{
+				glVertex3f(X0 + DX * (float)j, YGRID, Z0 + DZ * (float)(i + 0));
+				glVertex3f(X0 + DX * (float)j, YGRID, Z0 + DZ * (float)(i + 1));
+			}
+			glEnd();
+		}
+	glPopMatrix();
+	glEndList();
+
+	RoadList = glGenLists(1);
+	glNewList(RoadList, GL_COMPILE);
+	glPushMatrix();
+	// or whatever else you want
+	SetMaterial(0.2f, 0.2f, 0.2f, 80.f);
 	glNormal3f(0., 1., 0.);
+	XSIDE = 110;
+	ZSIDE = 1040;
+	glTranslatef(0., -.1, 0.);
 	for (int i = 0; i < NZ; i++)
 	{
-		glColor3f(1.0f, 0.5f, 0.0f);
 		glBegin(GL_QUAD_STRIP);
 		for (int j = 0; j < NX; j++)
 		{
@@ -1107,68 +1359,150 @@ InitLists( )
 		}
 		glEnd();
 	}
-	glEndList();
-
-	EspressoList = glGenLists(1);
-	glNewList(EspressoList, GL_COMPILE);
-		glPushMatrix();
-		glScalef(0.3f, 0.3f, 0.3f);
-		glTranslatef(0.0f, 0.0f, -10.0f);
-		glRotatef(270, 1, 0, 0);
-		SetMaterial(0.3f, 0.3f, 0.3f, 100.f);
-		LoadObjFile("espresso.obj");
-		glPopMatrix();
-	glEndList();
-
-	CupList = glGenLists(1);
-	glNewList(CupList, GL_COMPILE);
-	glPushMatrix();
-		glScalef(0.5f, 0.5f, 0.5f);
-		glTranslatef(-5, 0, 10);
-		//glRotatef(270, 1, 0, 0);
-		SetMaterial(1.0f, 1.0f, 1.0f,100.f);
-		LoadObjFile("cup.obj");
 	glPopMatrix();
 	glEndList();
 
-	SpoonList = glGenLists(1);
-	glNewList(SpoonList, GL_COMPILE);
-		glPushMatrix();
-			glScalef(1.1f, 1.1f, 1.1f);
-			
-			//glRotatef(25, -1, 0, 1);
-			SetMaterial(0.5f, 0.5f, 0.5f, 200.f);
-			LoadObjFile("spoon.obj");
-		glPopMatrix();
+	BuildingList = glGenLists(1);
+	glNewList(BuildingList, GL_COMPILE);
+	glPushMatrix();
+		//glScalef(0.1f, 0.1f, 0.1f);
+		glTranslatef(0.0f, 0.0f, -10.0f);
+		glRotatef(180, 0, 1, 0);
+		SetMaterial(0.3f, 0.3f, 0.3f, 100.f);
+		LoadObjFile("street.obj");
+	glPopMatrix();
 	glEndList();
 
+	StandList = glGenLists(1);
+	glNewList(StandList, GL_COMPILE);
+	glPushMatrix();
+		glScalef(0.5f, 0.5f, 0.5f);
+		SetMaterial(0.2f, 0.2f, 0.2f, 80.f);
+		LoadObjFile("batBlackBod.obj");
+		SetMaterial(1.0f, 1.0f, 1.0f, 80.f);
+		LoadObjFile("headTorso.obj");
+		SetMaterial(1.0f, 1.0f, 0.0f, 80.f);
+		LoadObjFile("yellowBelt.obj");
+	glPopMatrix();
+	glEndList();
+
+	BatWingList = glGenLists(1);
+	glNewList(BatWingList, GL_COMPILE);
+	glPushMatrix();
+	glScalef(0.5f, 0.5f, 0.5f);
+	SetMaterial(0.0f, 0.0f, 0.0f, 100.f);
+	LoadObjFile("blackBatMobile.obj");
+	SetMaterial(1.0f, 0.0f, 0.0f, 100.f);
+	LoadObjFile("redBatMobile.obj");
+	glPopMatrix();
+	glEndList();
+
+	SignalList = glGenLists(1);
+	glNewList(SignalList, GL_COMPILE);
+	glPushMatrix();
+		glScalef(.5f, .5f, .5f);
+		glRotatef(90.f, 0.0f, 1.0f, 0.0f);
+		SetMaterial(0.0f, 0.0f, 0.0f, 100.f);
+		LoadObjFile("batSymbol.obj");
+	glPopMatrix();
+	glEndList();
+
+	SigCircleList = glGenLists(1);
+	glNewList(SigCircleList, GL_COMPILE);
+	glPushMatrix();
+	SetMaterial(1.0f, 1.0f, 0.0f, 100.f);
+	glTranslatef(0.0f, 0.0f, -5.f);
+	int radius = 50;
+	int numSegments = 200;
+		glBegin(GL_TRIANGLE_FAN);
+		glVertex2f(x, y); // Center of circle
+		for (int i = 0; i <= numSegments; i++) {
+			GLfloat angle = i * 2.0f * M_PI / numSegments;
+			GLfloat dx = radius * cos(angle);
+			GLfloat dy = radius * sin(angle);
+			glVertex2f(x + dx, y + dy);
+		}
+		glEnd();
+	glPopMatrix();
+	glEndList();
+
+	JumpList = glGenLists(1);
+	glNewList(JumpList, GL_COMPILE);
+	glPushMatrix();
+	glScalef(0.5f, 0.5f, 0.5f);
+	glTranslatef(-5, 0, 10);
+	//SetMaterial(1.0f, 1.0f, 1.0f, 100.f);
+	LoadObjFile("batJump.obj");
+	glPopMatrix();
+	glEndList();
+
+	PrepJumpList = glGenLists(1);
+	glNewList(PrepJumpList, GL_COMPILE);
+	glPushMatrix();
+	glScalef(0.5f, 0.5f, 0.5f);
+	glTranslatef(-5, 0, 10);
+	//SetMaterial(1.0f, 1.0f, 1.0f, 100.f);
+	LoadObjFile("batPrepJump.obj");
+	glPopMatrix();
+	glEndList();
+
+	WalkLeftList = glGenLists(1);
+	glNewList(WalkLeftList, GL_COMPILE);
+	glPushMatrix();
+	glScalef(0.5f, 0.5f, 0.5f);
+	SetMaterial(0.2f, 0.2f, 0.2f, 80.f);
+	LoadObjFile("walkLeftBlack.obj");
+	SetMaterial(1.0f, 1.0f, 1.0f, 80.f);
+	LoadObjFile("walkLeftWhite.obj");
+	SetMaterial(1.0f, 1.0f, 0.0f, 80.f);
+	LoadObjFile("walkLeftYellow.obj");
+	glPopMatrix();
+	glEndList();
+
+	WalkRightList = glGenLists(1);
+	glNewList(WalkRightList, GL_COMPILE);
+	glPushMatrix();
+	glScalef(0.5f, 0.5f, 0.5f);
+	SetMaterial(0.2f, 0.2f, 0.2f, 80.f);
+	LoadObjFile("walkRightBlack.obj");
+	SetMaterial(1.0f, 1.0f, 1.0f, 80.f);
+	LoadObjFile("walkRightWhite.obj");
+	SetMaterial(1.0f, 1.0f, 0.0f, 80.f);
+	LoadObjFile("walkRightYellow.obj");
+	glPopMatrix();
+	glEndList();
+
+	BatList = glGenLists(1);
+	glNewList(BatList, GL_COMPILE);
+	glPushMatrix();
+		SetMaterial(0.0f, 0.0f, 0.0f, 200.f);
+		LoadObjFile("batSwarm.obj");
+	glPopMatrix();
+	glEndList();
+
+
 }
 
-void
-LetThereBeLight()
-{
-
-}
 // initialize the glui window:
 
 void
-InitMenus( )
+InitMenus()
 {
 	if (DebugOn != 0)
 		fprintf(stderr, "Starting InitMenus.\n");
 
-	glutSetWindow( MainWindow );
+	glutSetWindow(MainWindow);
 
-	int numColors = sizeof( Colors ) / ( 3*sizeof(float) );
-	int colormenu = glutCreateMenu( DoColorMenu );
-	for( int i = 0; i < numColors; i++ )
+	int numColors = sizeof(Colors) / (3 * sizeof(float));
+	int colormenu = glutCreateMenu(DoColorMenu);
+	for (int i = 0; i < numColors; i++)
 	{
-		glutAddMenuEntry( ColorNames[i], i );
+		glutAddMenuEntry(ColorNames[i], i);
 	}
 
-	int axesmenu = glutCreateMenu( DoAxesMenu );
-	glutAddMenuEntry( "Off",  0 );
-	glutAddMenuEntry( "On",   1 );
+	int axesmenu = glutCreateMenu(DoAxesMenu);
+	glutAddMenuEntry("Off", 0);
+	glutAddMenuEntry("On", 1);
 
 	int lightcolormenu = glutCreateMenu(DoLightColorMenu);
 	for (int i = 0; i < numColors; i++)
@@ -1177,179 +1511,179 @@ InitMenus( )
 	}
 
 	int lighttypemenu = glutCreateMenu(DoLightTypeMenu);
-	glutAddMenuEntry( "Point Light", 0);
-	glutAddMenuEntry( "Spot Light",  1);
+	glutAddMenuEntry("Point Light", 0);
+	glutAddMenuEntry("Spot Light", 1);
 
-	int depthcuemenu = glutCreateMenu( DoDepthMenu );
-	glutAddMenuEntry( "Off",  0 );
-	glutAddMenuEntry( "On",   1 );
+	int depthcuemenu = glutCreateMenu(DoDepthMenu);
+	glutAddMenuEntry("Off", 0);
+	glutAddMenuEntry("On", 1);
 
-	int depthbuffermenu = glutCreateMenu( DoDepthBufferMenu );
-	glutAddMenuEntry( "Off",  0 );
-	glutAddMenuEntry( "On",   1 );
+	int depthbuffermenu = glutCreateMenu(DoDepthBufferMenu);
+	glutAddMenuEntry("Off", 0);
+	glutAddMenuEntry("On", 1);
 
-	int depthfightingmenu = glutCreateMenu( DoDepthFightingMenu );
-	glutAddMenuEntry( "Off",  0 );
-	glutAddMenuEntry( "On",   1 );
+	int depthfightingmenu = glutCreateMenu(DoDepthFightingMenu);
+	glutAddMenuEntry("Off", 0);
+	glutAddMenuEntry("On", 1);
 
-	int debugmenu = glutCreateMenu( DoDebugMenu );
-	glutAddMenuEntry( "Off",  0 );
-	glutAddMenuEntry( "On",   1 );
+	int debugmenu = glutCreateMenu(DoDebugMenu);
+	glutAddMenuEntry("Off", 0);
+	glutAddMenuEntry("On", 1);
 
-	int projmenu = glutCreateMenu( DoProjectMenu );
-	glutAddMenuEntry( "Orthographic",  ORTHO );
-	glutAddMenuEntry( "Perspective",   PERSP );
+	int projmenu = glutCreateMenu(DoProjectMenu);
+	glutAddMenuEntry("Orthographic", ORTHO);
+	glutAddMenuEntry("Perspective", PERSP);
 
-	int mainmenu = glutCreateMenu( DoMainMenu );
-	glutAddSubMenu(   "Axes",          axesmenu);
-	glutAddSubMenu(   "Axis Colors",   colormenu);
-	glutAddSubMenu(   "Light Colors",  lightcolormenu);
-	glutAddSubMenu(   "Light Type",    lighttypemenu);
+	int mainmenu = glutCreateMenu(DoMainMenu);
+	glutAddSubMenu("Axes", axesmenu);
+	glutAddSubMenu("Axis Colors", colormenu);
+	glutAddSubMenu("Light Colors", lightcolormenu);
+	glutAddSubMenu("Light Type", lighttypemenu);
 
 
 #ifdef DEMO_DEPTH_BUFFER
-	glutAddSubMenu(   "Depth Buffer",  depthbuffermenu);
+	glutAddSubMenu("Depth Buffer", depthbuffermenu);
 #endif
 
 #ifdef DEMO_Z_FIGHTING
-	glutAddSubMenu(   "Depth Fighting",depthfightingmenu);
+	glutAddSubMenu("Depth Fighting", depthfightingmenu);
 #endif
 
-	glutAddSubMenu(   "Depth Cue",     depthcuemenu);
-	glutAddSubMenu(   "Projection",    projmenu );
-	glutAddMenuEntry( "Reset",         RESET );
-	glutAddSubMenu(   "Debug",         debugmenu);
-	glutAddMenuEntry( "Quit",          QUIT );
+	glutAddSubMenu("Depth Cue", depthcuemenu);
+	glutAddSubMenu("Projection", projmenu);
+	glutAddMenuEntry("Reset", RESET);
+	glutAddSubMenu("Debug", debugmenu);
+	glutAddMenuEntry("Quit", QUIT);
 
-// attach the pop-up menu to the right mouse button:
+	// attach the pop-up menu to the right mouse button:
 
-	glutAttachMenu( GLUT_RIGHT_BUTTON );
+	glutAttachMenu(GLUT_RIGHT_BUTTON);
 }
 
 
 // the keyboard callback:
 
 void
-Keyboard( unsigned char c, int x, int y )
+Keyboard(unsigned char c, int x, int y)
 {
-	if( DebugOn != 0 )
-		fprintf( stderr, "Keyboard: '%c' (0x%0x)\n", c, c );
+	if (DebugOn != 0)
+		fprintf(stderr, "Keyboard: '%c' (0x%0x)\n", c, c);
 
-	switch( c )
+	switch (c)
 	{
-		case 'o':
-		case 'O':
-			NowProjection = ORTHO;
-			break;
+	case 'o':
+	case 'O':
+		NowProjection = ORTHO;
+		break;
 
-		case 'j':
-		case 'J':
-			NowProjection = PERSP;
-			break;
-		case 'p':
-		case 'P':
-			NowLight = 0;
-			break;
-		case 's':
-		case 'S':
-			NowLight = 1;
-			break;
-		case 'w':
-		case 'W':
-			LightColor = 0;
-			break;
-		case 'r':
-		case 'R':
-			LightColor = 1;
-			break;
-		case 'g':
-		case 'G':
-			LightColor = 2;
-			break;
-		case 'b':
-		case 'B':
-			LightColor = 3;
-			break;
-		case 'c':
-		case 'C':
-			LightColor = 4;
-			break;
-		case 'm':
-		case 'M':
-			LightColor = 5;
-			break;
-		case 'f':
-		case 'F':
-			Frozen = !Frozen;
-			if (Frozen)
-				glutIdleFunc(NULL);
-			else
-				
-				glutIdleFunc(Animate);
-			break;
-		case 'q':
-		case 'Q':
-		case ESCAPE:
-			DoMainMenu( QUIT );	// will not return here
-			break;				// happy compiler
+	case 'j':
+	case 'J':
+		NowProjection = PERSP;
+		break;
+	case 'p':
+	case 'P':
+		NowLight = 0;
+		break;
+	case 's':
+	case 'S':
+		NowLight = 1;
+		break;
+	case 'w':
+	case 'W':
+		LightColor = 0;
+		break;
+	case 'r':
+	case 'R':
+		LightColor = 1;
+		break;
+	case 'g':
+	case 'G':
+		LightColor = 2;
+		break;
+	case 'b':
+	case 'B':
+		LightColor = 3;
+		break;
+	case 'c':
+	case 'C':
+		LightColor = 4;
+		break;
+	case 'm':
+	case 'M':
+		LightColor = 5;
+		break;
+	case 'f':
+	case 'F':
+		Frozen = !Frozen;
+		if (Frozen)
+			glutIdleFunc(NULL);
+		else
 
-		default:
-			fprintf( stderr, "Don't know what to do with keyboard hit: '%c' (0x%0x)\n", c, c );
+			glutIdleFunc(Animate);
+		break;
+	case 'q':
+	case 'Q':
+	case ESCAPE:
+		DoMainMenu(QUIT);	// will not return here
+		break;				// happy compiler
+
+	default:
+		fprintf(stderr, "Don't know what to do with keyboard hit: '%c' (0x%0x)\n", c, c);
 	}
 
 	// force a call to Display( ):
 
-	glutSetWindow( MainWindow );
-	glutPostRedisplay( );
+	glutSetWindow(MainWindow);
+	glutPostRedisplay();
 }
 
 
 // called when the mouse button transitions down or up:
 
 void
-MouseButton( int button, int state, int x, int y )
+MouseButton(int button, int state, int x, int y)
 {
 	int b = 0;			// LEFT, MIDDLE, or RIGHT
 
-	if( DebugOn != 0 )
-		fprintf( stderr, "MouseButton: %d, %d, %d, %d\n", button, state, x, y );
+	if (DebugOn != 0)
+		fprintf(stderr, "MouseButton: %d, %d, %d, %d\n", button, state, x, y);
 
-	
+
 	// get the proper button bit mask:
 
-	switch( button )
+	switch (button)
 	{
-		case GLUT_LEFT_BUTTON:
-			b = LEFT;		break;
+	case GLUT_LEFT_BUTTON:
+		b = LEFT;		break;
 
-		case GLUT_MIDDLE_BUTTON:
-			b = MIDDLE;		break;
+	case GLUT_MIDDLE_BUTTON:
+		b = MIDDLE;		break;
 
-		case GLUT_RIGHT_BUTTON:
-			b = RIGHT;		break;
+	case GLUT_RIGHT_BUTTON:
+		b = RIGHT;		break;
 
-		case SCROLL_WHEEL_UP:
-			Scale += SCLFACT * SCROLL_WHEEL_CLICK_FACTOR;
-			// keep object from turning inside-out or disappearing:
-			if (Scale < MINSCALE)
-				Scale = MINSCALE;
-			break;
+	case SCROLL_WHEEL_UP:
+		Scale += SCLFACT * SCROLL_WHEEL_CLICK_FACTOR;
+		// keep object from turning inside-out or disappearing:
+		if (Scale < MINSCALE)
+			Scale = MINSCALE;
+		break;
 
-		case SCROLL_WHEEL_DOWN:
-			Scale -= SCLFACT * SCROLL_WHEEL_CLICK_FACTOR;
-			// keep object from turning inside-out or disappearing:
-			if (Scale < MINSCALE)
-				Scale = MINSCALE;
-			break;
+	case SCROLL_WHEEL_DOWN:
+		Scale -= SCLFACT * SCROLL_WHEEL_CLICK_FACTOR;
+		// keep object from turning inside-out or disappearing:
+		if (Scale < MINSCALE)
+			Scale = MINSCALE;
+		break;
 
-		default:
-			b = 0;
-			fprintf( stderr, "Unknown mouse button: %d\n", button );
+	default:
+		b = 0;
+		fprintf(stderr, "Unknown mouse button: %d\n", button);
 	}
 
 	// button down sets the bit, up clears the bit:
 
-	if( state == GLUT_DOWN )
+	if (state == GLUT_DOWN)
 	{
 		Xmouse = x;
 		Ymouse = y;
@@ -1369,32 +1703,32 @@ MouseButton( int button, int state, int x, int y )
 // called when the mouse moves while a button is down:
 
 void
-MouseMotion( int x, int y )
+MouseMotion(int x, int y)
 {
 	int dx = x - Xmouse;		// change in mouse coords
 	int dy = y - Ymouse;
 
-	if( ( ActiveButton & LEFT ) != 0 )
+	if ((ActiveButton & LEFT) != 0)
 	{
-		Xrot += ( ANGFACT*dy );
-		Yrot += ( ANGFACT*dx );
+		Xrot += (ANGFACT * dy);
+		Yrot += (ANGFACT * dx);
 	}
 
-	if( ( ActiveButton & MIDDLE ) != 0 )
+	if ((ActiveButton & MIDDLE) != 0)
 	{
-		Scale += SCLFACT * (float) ( dx - dy );
+		Scale += SCLFACT * (float)(dx - dy);
 
 		// keep object from turning inside-out or disappearing:
 
-		if( Scale < MINSCALE )
+		if (Scale < MINSCALE)
 			Scale = MINSCALE;
 	}
 
 	Xmouse = x;			// new current position
 	Ymouse = y;
 
-	glutSetWindow( MainWindow );
-	glutPostRedisplay( );
+	glutSetWindow(MainWindow);
+	glutPostRedisplay();
 }
 
 
@@ -1403,7 +1737,7 @@ MouseMotion( int x, int y )
 // the glut main loop is responsible for redrawing the scene
 
 void
-Reset( )
+Reset()
 {
 	ActiveButton = 0;
 	AxesOn = 1;
@@ -1414,7 +1748,7 @@ Reset( )
 	DepthBufferOn = 1;
 	DepthFightingOn = 0;
 	DepthCueOn = 0;
-	Scale  = 1.0;
+	Scale = 1.0;
 	ShadowsOn = 0;
 	NowColor = YELLOW;
 	NowProjection = PERSP;
@@ -1425,28 +1759,28 @@ Reset( )
 // called when user resizes the window:
 
 void
-Resize( int width, int height )
+Resize(int width, int height)
 {
 	// don't really need to do anything since window size is
 	// checked each time in Display( ):
 
-	glutSetWindow( MainWindow );
-	glutPostRedisplay( );
+	glutSetWindow(MainWindow);
+	glutPostRedisplay();
 }
 
 
 // handle a change to the window's visibility:
 
 void
-Visibility ( int state )
+Visibility(int state)
 {
-	if( DebugOn != 0 )
-		fprintf( stderr, "Visibility: %d\n", state );
+	if (DebugOn != 0)
+		fprintf(stderr, "Visibility: %d\n", state);
 
-	if( state == GLUT_VISIBLE )
+	if (state == GLUT_VISIBLE)
 	{
-		glutSetWindow( MainWindow );
-		glutPostRedisplay( );
+		glutSetWindow(MainWindow);
+		glutPostRedisplay();
 	}
 	else
 	{
@@ -1463,23 +1797,23 @@ Visibility ( int state )
 
 // the stroke characters 'X' 'Y' 'Z' :
 
-static float xx[ ] = { 0.f, 1.f, 0.f, 1.f };
+static float xx[] = { 0.f, 1.f, 0.f, 1.f };
 
-static float xy[ ] = { -.5f, .5f, .5f, -.5f };
+static float xy[] = { -.5f, .5f, .5f, -.5f };
 
-static int xorder[ ] = { 1, 2, -3, 4 };
+static int xorder[] = { 1, 2, -3, 4 };
 
-static float yx[ ] = { 0.f, 0.f, -.5f, .5f };
+static float yx[] = { 0.f, 0.f, -.5f, .5f };
 
-static float yy[ ] = { 0.f, .6f, 1.f, 1.f };
+static float yy[] = { 0.f, .6f, 1.f, 1.f };
 
-static int yorder[ ] = { 1, 2, 3, -2, 4 };
+static int yorder[] = { 1, 2, 3, -2, 4 };
 
-static float zx[ ] = { 1.f, 0.f, 1.f, 0.f, .25f, .75f };
+static float zx[] = { 1.f, 0.f, 1.f, 0.f, .25f, .75f };
 
-static float zy[ ] = { .5f, .5f, -.5f, -.5f, 0.f, 0.f };
+static float zy[] = { .5f, .5f, -.5f, -.5f, 0.f, 0.f };
 
-static int zorder[ ] = { 1, 2, 3, 4, -5, 6 };
+static int zorder[] = { 1, 2, 3, 4, -5, 6 };
 
 // fraction of the length to use as height of the characters:
 const float LENFRAC = 0.10f;
@@ -1491,68 +1825,68 @@ const float BASEFRAC = 1.10f;
 //	(length is the axis length in world coordinates)
 
 void
-Axes( float length )
+Axes(float length)
 {
-	glBegin( GL_LINE_STRIP );
-		glVertex3f( length, 0., 0. );
-		glVertex3f( 0., 0., 0. );
-		glVertex3f( 0., length, 0. );
-	glEnd( );
-	glBegin( GL_LINE_STRIP );
-		glVertex3f( 0., 0., 0. );
-		glVertex3f( 0., 0., length );
-	glEnd( );
+	glBegin(GL_LINE_STRIP);
+	glVertex3f(length, 0., 0.);
+	glVertex3f(0., 0., 0.);
+	glVertex3f(0., length, 0.);
+	glEnd();
+	glBegin(GL_LINE_STRIP);
+	glVertex3f(0., 0., 0.);
+	glVertex3f(0., 0., length);
+	glEnd();
 
 	float fact = LENFRAC * length;
 	float base = BASEFRAC * length;
 
-	glBegin( GL_LINE_STRIP );
-		for( int i = 0; i < 4; i++ )
+	glBegin(GL_LINE_STRIP);
+	for (int i = 0; i < 4; i++)
+	{
+		int j = xorder[i];
+		if (j < 0)
 		{
-			int j = xorder[i];
-			if( j < 0 )
-			{
-				
-				glEnd( );
-				glBegin( GL_LINE_STRIP );
-				j = -j;
-			}
-			j--;
-			glVertex3f( base + fact*xx[j], fact*xy[j], 0.0 );
-		}
-	glEnd( );
 
-	glBegin( GL_LINE_STRIP );
-		for( int i = 0; i < 5; i++ )
-		{
-			int j = yorder[i];
-			if( j < 0 )
-			{
-				
-				glEnd( );
-				glBegin( GL_LINE_STRIP );
-				j = -j;
-			}
-			j--;
-			glVertex3f( fact*yx[j], base + fact*yy[j], 0.0 );
+			glEnd();
+			glBegin(GL_LINE_STRIP);
+			j = -j;
 		}
-	glEnd( );
+		j--;
+		glVertex3f(base + fact * xx[j], fact * xy[j], 0.0);
+	}
+	glEnd();
 
-	glBegin( GL_LINE_STRIP );
-		for( int i = 0; i < 6; i++ )
+	glBegin(GL_LINE_STRIP);
+	for (int i = 0; i < 5; i++)
+	{
+		int j = yorder[i];
+		if (j < 0)
 		{
-			int j = zorder[i];
-			if( j < 0 )
-			{
-				
-				glEnd( );
-				glBegin( GL_LINE_STRIP );
-				j = -j;
-			}
-			j--;
-			glVertex3f( 0.0, fact*zy[j], base + fact*zx[j] );
+
+			glEnd();
+			glBegin(GL_LINE_STRIP);
+			j = -j;
 		}
-	glEnd( );
+		j--;
+		glVertex3f(fact * yx[j], base + fact * yy[j], 0.0);
+	}
+	glEnd();
+
+	glBegin(GL_LINE_STRIP);
+	for (int i = 0; i < 6; i++)
+	{
+		int j = zorder[i];
+		if (j < 0)
+		{
+
+			glEnd();
+			glBegin(GL_LINE_STRIP);
+			j = -j;
+		}
+		j--;
+		glVertex3f(0.0, fact * zy[j], base + fact * zx[j]);
+	}
+	glEnd();
 
 }
 
@@ -1564,68 +1898,68 @@ Axes( float length )
 //		glColor3fv( rgb );
 
 void
-HsvRgb( float hsv[3], float rgb[3] )
+HsvRgb(float hsv[3], float rgb[3])
 {
 	// guarantee valid input:
 
 	float h = hsv[0] / 60.f;
-	while( h >= 6. )	h -= 6.;
-	while( h <  0. ) 	h += 6.;
+	while (h >= 6.)	h -= 6.;
+	while (h < 0.) 	h += 6.;
 
 	float s = hsv[1];
-	if( s < 0. )
+	if (s < 0.)
 		s = 0.;
-	if( s > 1. )
+	if (s > 1.)
 		s = 1.;
 
 	float v = hsv[2];
-	if( v < 0. )
+	if (v < 0.)
 		v = 0.;
-	if( v > 1. )
+	if (v > 1.)
 		v = 1.;
 
 	// if sat==0, then is a gray:
 
-	if( s == 0.0 )
+	if (s == 0.0)
 	{
 		rgb[0] = rgb[1] = rgb[2] = v;
 		return;
 	}
 
 	// get an rgb from the hue itself:
-	
-	float i = (float)floor( h );
-	float f = h - i;
-	float p = v * ( 1.f - s );
-	float q = v * ( 1.f - s*f );
-	float t = v * ( 1.f - ( s * (1.f-f) ) );
 
-	float r=0., g=0., b=0.;			// red, green, blue
-	switch( (int) i )
+	float i = (float)floor(h);
+	float f = h - i;
+	float p = v * (1.f - s);
+	float q = v * (1.f - s * f);
+	float t = v * (1.f - (s * (1.f - f)));
+
+	float r = 0., g = 0., b = 0.;			// red, green, blue
+	switch ((int)i)
 	{
-		case 0:
-			r = v;	g = t;	b = p;
-			break;
-	
-		case 1:
-			r = q;	g = v;	b = p;
-			break;
-	
-		case 2:
-			r = p;	g = v;	b = t;
-			break;
-	
-		case 3:
-			r = p;	g = q;	b = v;
-			break;
-	
-		case 4:
-			r = t;	g = p;	b = v;
-			break;
-	
-		case 5:
-			r = v;	g = p;	b = q;
-			break;
+	case 0:
+		r = v;	g = t;	b = p;
+		break;
+
+	case 1:
+		r = q;	g = v;	b = p;
+		break;
+
+	case 2:
+		r = p;	g = v;	b = t;
+		break;
+
+	case 3:
+		r = p;	g = q;	b = v;
+		break;
+
+	case 4:
+		r = t;	g = p;	b = v;
+		break;
+
+	case 5:
+		r = v;	g = p;	b = q;
+		break;
 	}
 
 
@@ -1675,7 +2009,7 @@ Unit(float vin[3], float vout[3])
 
 
 float
-Unit( float v[3] )
+Unit(float v[3])
 {
 	float dist = v[0] * v[0] + v[1] * v[1] + v[2] * v[2];
 	if (dist > 0.0)

@@ -1,0 +1,17 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <CustomBuild Include="D:\CS 450\Sample2022\CMakeFiles\fbbf6290bc68bd0acf333752c3b91ba5\uninstall.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\Users\aimee\source\repos\assimp\CMakeLists.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="D:\CS 450\Sample2022\CMakeFiles\uninstall" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="CMake Rules">
+      <UniqueIdentifier>{726D3BBD-D73A-3F5F-92A7-C6ABD83C953A}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

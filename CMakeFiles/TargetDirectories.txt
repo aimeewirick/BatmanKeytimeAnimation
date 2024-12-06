@@ -1,0 +1,13 @@
+D:/CS 450/Sample2022/CMakeFiles/uninstall.dir
+D:/CS 450/Sample2022/CMakeFiles/UpdateAssimpLibsDebugSymbolsAndDLLs.dir
+D:/CS 450/Sample2022/CMakeFiles/INSTALL.dir
+D:/CS 450/Sample2022/CMakeFiles/ALL_BUILD.dir
+D:/CS 450/Sample2022/CMakeFiles/ZERO_CHECK.dir
+D:/CS 450/Sample2022/contrib/zlib/CMakeFiles/zlibstatic.dir
+D:/CS 450/Sample2022/contrib/zlib/CMakeFiles/INSTALL.dir
+D:/CS 450/Sample2022/contrib/zlib/CMakeFiles/ALL_BUILD.dir
+D:/CS 450/Sample2022/code/CMakeFiles/assimp.dir
+D:/CS 450/Sample2022/code/CMakeFiles/INSTALL.dir
+D:/CS 450/Sample2022/test/CMakeFiles/unit.dir
+D:/CS 450/Sample2022/test/CMakeFiles/INSTALL.dir
+D:/CS 450/Sample2022/test/headercheck/CMakeFiles/INSTALL.dir

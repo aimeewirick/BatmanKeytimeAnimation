@@ -1,0 +1,4 @@
+
+ERROR: 0:26: 'float' : syntax error syntax error
+
+
