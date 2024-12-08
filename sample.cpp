@@ -185,7 +185,7 @@ const float	WHITE[] = { 1.,1.,1.,1. };
 // for animation:
 
 const int MS_PER_CYCLE = 10000;		// 10000 milliseconds = 10 seconds
-const int MSEC = 18000;
+const int MSEC = 22000; //This sets how long the scene goes before restarting...currently 22 seconds.
 
 // what options should we compile-in?
 // in general, you don't need to worry about these
@@ -212,6 +212,7 @@ GLuint	WalkLeftList;
 GLuint	WalkRightList;
 GLuint	BatList;
 GLuint	WallList;
+GLuint  WallTexture;
 GLuint	RoadList;
 GLuint	ManBat;
 GLuint	BatWingList;
@@ -365,6 +366,7 @@ Keytimes Zpos2, Zrot2;//bat
 Keytimes WingX; //batwing x pos
 Keytimes WingY; //batwing y pos
 Keytimes WingZ; //batwing z pos
+Keytimes WingRotY;//batwing y rotation
 Keytimes SigOn;//turn on bat signal
 Keytimes SigX;//bat signal point at x -- also coordinates for the symbol
 Keytimes SigY;//bat signal point at y -- also coordinates for the symbol
@@ -544,46 +546,36 @@ Display()
 	//make spotlight on and spotlight position into time coordinates
 	glEnable(GL_LIGHTING);
 
-	if (SigOn.GetValue(nowTime) < 1) {
-		SetPointLight(GL_LIGHT0, 0, 50, 20, 1, 1, 1);
-		SetSpotLight(GL_LIGHT1, 100, 250, 0, SpotX.GetValue(nowTime), SpotY.GetValue(nowTime), SpotZ.GetValue(nowTime), 1, 1, 0);
-		glEnable(GL_LIGHT1);
-		glEnable(GL_LIGHT0);
 
-	}
-	else {
-		glDisable(GL_LIGHT1);
-		SetPointLight(GL_LIGHT0, 0, 50, 20, 1, 1, 1);
-		glEnable(GL_LIGHT0);
-	}
-
-
+	SetPointLight(GL_LIGHT0, 0, 50, 20, 1, 1, 1);
+	SetSpotLight(GL_LIGHT1, 100, 250, 0, SpotX.GetValue(nowTime), SpotY.GetValue(nowTime), SpotZ.GetValue(nowTime), 1, 1, 0);
+	glEnable(GL_LIGHT1);
+	glEnable(GL_LIGHT0);
+	
+	//glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
 	
 	glShadeModel(GL_SMOOTH);
 
 	
-	//draw bat man
-	float rounded = round(nowTime);
-	float remainder2 = remainder(rounded, 2);
-	float remainder3 = remainder(rounded, 3);
 	
-	float batBodTracker = batMan.GetValue(nowTime);
+	float batBodTracker = batMan.GetValue(nowTime); //checks batMan which sets which body position to use at what time 
 	
-
-	glPushMatrix();
+	//draw Bat Man
+	if (Ypos1.GetValue(nowTime) > -1.5) { // batman dissappers when he gets in the bat wing
+		glPushMatrix();
 		glTranslatef(Xpos1.GetValue(nowTime), Ypos1.GetValue(nowTime), Zpos1.GetValue(nowTime));
 		glRotatef(Yrot1.GetValue(nowTime), 0.0f, 1.0f, 0.0f);
-			if ((batBodTracker <= 1.5) && (batBodTracker > 0)) {
-				glCallList(WalkRightList);
-			}
-			else if( batBodTracker > 1.5) {
-				glCallList(WalkLeftList);
-			}
-			else {
-				glCallList(StandList);
-			}
-		//fprintf(stderr, "batMan return: %f", batMan.GetValue(nowTime));
-	glPopMatrix();
+		if ((batBodTracker <= 1.5) && (batBodTracker > 0)) {
+			glCallList(WalkRightList);
+		}
+		else if (batBodTracker > 1.5) {
+			glCallList(WalkLeftList);
+		}
+		else {
+			glCallList(StandList);
+		}
+		glPopMatrix();
+	}
 
 	//draw bat symbol in signal spotlight
 	if (SigOn.GetValue(nowTime) > 1) {
@@ -593,20 +585,44 @@ Display()
 			glCallList(SignalList);
 		glPopMatrix();
 	}
-	//draw building
+
+	//draw buildings and cityscape
+
+	//buildings
 	glCallList(BuildingList);
-	glCallList(WallList);
-	glCallList(RoadList);
-	//draw bat
+	//back wall
+	glPushMatrix();
+		glTranslatef(0., 100., -600.);
+		glRotatef(90., 1., 0., 0.);
+		glEnable(GL_TEXTURE_2D);
+		glBindTexture(GL_TEXTURE_2D, WallTexture);
+		glCallList(WallList);
+		glDisable(GL_TEXTURE_2D);
+	glPopMatrix();
+	//Road
+	glPushMatrix();
+		glTranslatef(0., -.1, 0.);
+		glCallList(RoadList);//need for reflection..building obj doesn't have reflective properties
+	glPopMatrix();
+	
+
+	//draw bat swarm
 	glPushMatrix();
 	glTranslatef(Xpos2.GetValue(nowTime), Ypos2.GetValue(nowTime), Zpos2.GetValue(nowTime));
-	glRotatef(Zrot2.GetValue(nowTime), 0., 0., 1.);
+	glRotatef(Xrot2.GetValue(nowTime), 1., 0., 0.); //swoops x the bats
+	glRotatef(Zrot2.GetValue(nowTime), 0., 0., 1.); // swirls z the bats 
 	glCallList(BatList);
 	glPopMatrix();
 
+	//draw bat wing vehicle
+	glPushMatrix();
+	glTranslatef(WingX.GetValue(nowTime), WingY.GetValue(nowTime), WingZ.GetValue(nowTime));
+	glRotatef(WingRotY.GetValue(nowTime), 0., 1., 0.);
+	glCallList(BatWingList);
+	glPopMatrix();
 
 	glDisable(GL_LIGHTING);
-
+	
 
 
 	// draw the box object by calling up its display list:
@@ -902,7 +918,8 @@ InitGraphics()
 	glutMenuStateFunc(NULL);
 	glutTimerFunc(-1, NULL, 0);
 
-	Xpos1.Init(); // bat man
+	//Bat man positions
+	Xpos1.Init(); // bat man x
 	Xpos1.AddTimeValue(0.0, 0.000);
 	Xpos1.AddTimeValue(0.5, 0.000);
 	Xpos1.AddTimeValue(1.0, 0.000);
@@ -912,35 +929,60 @@ InitGraphics()
 	Xpos1.AddTimeValue(3.5, 0.000);
 	Xpos1.AddTimeValue(4.0, 0.000);
 	Xpos1.AddTimeValue(4.5, 0.000);
+	Xpos1.AddTimeValue(5.0, 0.000);
+	Xpos1.AddTimeValue(5.5, 0.000);
+	Xpos1.AddTimeValue(6.0, 0.000);
+	Xpos1.AddTimeValue(6.5, 0.000);
+	Xpos1.AddTimeValue(7.0, 0.000);
+	Xpos1.AddTimeValue(7.5, 0.000);
+	Xpos1.AddTimeValue(8.0, 0.000);
+	Xpos1.AddTimeValue(8.5, 0.000);
+	Xpos1.AddTimeValue(9.0, 0.000);//stop and turn to look at symbol
+	Xpos1.AddTimeValue(9.5, 0.000);
+	Xpos1.AddTimeValue(10.0, 0.000);
+	Xpos1.AddTimeValue(10.5, 0.000);
+	Xpos1.AddTimeValue(11.0, 0.000);
+	Xpos1.AddTimeValue(11.5, 0.000);
+	Xpos1.AddTimeValue(18.0, 0.000);//Turning back to jet
+	Xpos1.AddTimeValue(18.5, 0.000);
+	Xpos1.AddTimeValue(19.0, 0.000);//getting in jet
+	Xpos1.AddTimeValue(20.0, 0.000);
+	Xpos1.AddTimeValue(21.0, 0.000);
+	Xpos1.AddTimeValue(22.0, 0.000);
 
-	Ypos1.Init();//bat man
-	Ypos1.AddTimeValue(0.0, 0);
-	Ypos1.AddTimeValue(.5, 2);
-	Ypos1.AddTimeValue(1.0, 0);
-	Ypos1.AddTimeValue(1.5, 2);
-	Ypos1.AddTimeValue(2.0, 0);
-	Ypos1.AddTimeValue(2.5, 2);
-	Ypos1.AddTimeValue(3.0, 0);
-	Ypos1.AddTimeValue(3.5, 2);
-	Ypos1.AddTimeValue(4.0, 0);
-	Ypos1.AddTimeValue(4.5, 2);
-	Ypos1.AddTimeValue(5.0, 0);
-	Ypos1.AddTimeValue(5.5, 2);
-	Ypos1.AddTimeValue(6.0, 0);
-	Ypos1.AddTimeValue(6.5, 2);
-	Ypos1.AddTimeValue(7.0, 0);
-	Ypos1.AddTimeValue(7.5, 2);
-	Ypos1.AddTimeValue(8.0, 0);
-	Ypos1.AddTimeValue(8.5, 2);
-	Ypos1.AddTimeValue(9.0, 0);
-	Ypos1.AddTimeValue(9.5, 0);
-	Ypos1.AddTimeValue(10.0, 0);
-	Ypos1.AddTimeValue(10.5, 0);
-	Ypos1.AddTimeValue(11.0, 0);
-	Ypos1.AddTimeValue(11.5, 0);
+	Ypos1.Init();//bat man y
+	Ypos1.AddTimeValue(0.0, -1);
+	Ypos1.AddTimeValue(.5, 1);
+	Ypos1.AddTimeValue(1.0, -1);
+	Ypos1.AddTimeValue(1.5, 1);
+	Ypos1.AddTimeValue(2.0, -1);
+	Ypos1.AddTimeValue(2.5, 1);
+	Ypos1.AddTimeValue(3.0, -1);
+	Ypos1.AddTimeValue(3.5, 1);
+	Ypos1.AddTimeValue(4.0, -1);
+	Ypos1.AddTimeValue(4.5, 1);
+	Ypos1.AddTimeValue(5.0, -1);
+	Ypos1.AddTimeValue(5.5, 1);
+	Ypos1.AddTimeValue(6.0, -1);
+	Ypos1.AddTimeValue(6.5, 1);
+	Ypos1.AddTimeValue(7.0, -1);
+	Ypos1.AddTimeValue(7.5, 1);
+	Ypos1.AddTimeValue(8.0, -1);
+	Ypos1.AddTimeValue(8.5, 1);
+	Ypos1.AddTimeValue(9.0, -1);//stop and turn to look at symbol
+	Ypos1.AddTimeValue(9.5, -1);
+	Ypos1.AddTimeValue(10.0, -1);
+	Ypos1.AddTimeValue(10.5, -1);
+	Ypos1.AddTimeValue(11.0, -1);
+	Ypos1.AddTimeValue(11.5, -1);
+	Ypos1.AddTimeValue(18.0, -1);//Turning back to jet
+	Ypos1.AddTimeValue(18.5, -5);
+	Ypos1.AddTimeValue(19.0, -5);//getting in jet
+	Ypos1.AddTimeValue(20.0, -5);
+	Ypos1.AddTimeValue(21.0, -5);
+	Ypos1.AddTimeValue(22.0, -5);
 
 	Zpos1.Init();// bat man Z
-	Zpos1.Init();//bat man list
 	Zpos1.AddTimeValue(0.0, -200.);
 	Zpos1.AddTimeValue(.5, -190.);
 	Zpos1.AddTimeValue(1.0, -180.);
@@ -959,12 +1001,21 @@ InitGraphics()
 	Zpos1.AddTimeValue(7.5, -50.);
 	Zpos1.AddTimeValue(8.0, -40.);
 	Zpos1.AddTimeValue(8.5, -30.);
-	Zpos1.AddTimeValue(9.0, -20.);
+	Zpos1.AddTimeValue(9.0, -20.);//stop and turn to look at symbol
 	Zpos1.AddTimeValue(9.5, -20.);
 	Zpos1.AddTimeValue(10.0, -20.);
 	Zpos1.AddTimeValue(10.5, -20.);
 	Zpos1.AddTimeValue(11.0, -20.);
-	Zpos1.AddTimeValue(11.5, -20.);
+	Zpos1.AddTimeValue(16.0, -20.);
+	Zpos1.AddTimeValue(16.5, -10.);
+	Zpos1.AddTimeValue(17.0, 5.);
+	Zpos1.AddTimeValue(17.5, 15.);
+	Zpos1.AddTimeValue(18.0, 15.);//Turning back to jet
+	Zpos1.AddTimeValue(18.5, 15.);
+	Zpos1.AddTimeValue(19.0, 15.);//getting in jet
+	Zpos1.AddTimeValue(20.0, 15.);
+	Zpos1.AddTimeValue(21.0, 15.);
+	Zpos1.AddTimeValue(22.0, 15.);
 
 	Yrot1.Init();//bat man
 	Yrot1.AddTimeValue(0.0, 0); //Walking
@@ -988,12 +1039,25 @@ InitGraphics()
 	Yrot1.AddTimeValue(9.0, 0);
 	Yrot1.AddTimeValue(9.5, 45); //Turning
 	Yrot1.AddTimeValue(10.0, 90);
-	Yrot1.AddTimeValue(10.5, 180);
-	Yrot1.AddTimeValue(11.0, 180);//Looking
-	Yrot1.AddTimeValue(11.5, 180);
+	Yrot1.AddTimeValue(10.5, 180);//Looking
+	Yrot1.AddTimeValue(11.0, 180);
+	Yrot1.AddTimeValue(11.5, 180.);
+	Yrot1.AddTimeValue(14.5, 180.);
+	Yrot1.AddTimeValue(15.0, 180.);
+	Yrot1.AddTimeValue(15.5, 0.);
+	Yrot1.AddTimeValue(16.0, 0.);
+	Yrot1.AddTimeValue(16.5, 0.);
+	Yrot1.AddTimeValue(17.0, 0.);
+	Yrot1.AddTimeValue(17.5, 0.);
+	Yrot1.AddTimeValue(18.0, 0.);//Turning back to jet
+	Yrot1.AddTimeValue(18.5, 0.);
+	Yrot1.AddTimeValue(19.0, 0.);//getting in jet
+	Yrot1.AddTimeValue(20.0, 0.);
+	Yrot1.AddTimeValue(21.0, 0.);
+	Yrot1.AddTimeValue(22.0, 0.);
 
-	batMan.Init();//bat man list
-	batMan.AddTimeValue(0.0, 0.000);//Walking
+	batMan.Init();//bat man body selection list
+	batMan.AddTimeValue(0.0, 0.000);//Walking body (right leg body, and left leg body)
 	batMan.AddTimeValue(.5, 2.000);
 	batMan.AddTimeValue(1.0, 4.000);
 	batMan.AddTimeValue(1.5, 0.000);
@@ -1012,112 +1076,25 @@ InitGraphics()
 	batMan.AddTimeValue(8.0, 4.000);
 	batMan.AddTimeValue(8.5, 0.000);
 	batMan.AddTimeValue(9.0, 4.000);
-	batMan.AddTimeValue(9.5, -5.00);//turning standing pose
+	batMan.AddTimeValue(9.5, 0.000);//turning standing pose
 	batMan.AddTimeValue(10.0, -5.00);
 	batMan.AddTimeValue(10.5, -5.00);
-	batMan.AddTimeValue(11.0, -5.00);//looking standing pose
+	batMan.AddTimeValue(11.0, -5.00);
 	batMan.AddTimeValue(11.5, -5.00);
+	batMan.AddTimeValue(16.0, 4.000);
+	batMan.AddTimeValue(16.5, 0.000);
+	batMan.AddTimeValue(17.0, 4.000);
+	batMan.AddTimeValue(17.5, 0.000);
+	batMan.AddTimeValue(18.0, -5.00);//Turning back to jet
+	batMan.AddTimeValue(18.5, -5.00);
+	batMan.AddTimeValue(19.0, -5.00);//getting in jet
+	batMan.AddTimeValue(20.0, -20.00);
+	batMan.AddTimeValue(21.0, -20.00);
+	batMan.AddTimeValue(22.0, -20.00);
 
 
-	SigOn.Init();//bat signal spotlight on
-	SigOn.AddTimeValue(0.0, 0.000);
-	SigOn.AddTimeValue(5.0, 0.00);
-	SigOn.AddTimeValue(7.0, 0.000);
-	SigOn.AddTimeValue(8.0, 0.000);
-	SigOn.AddTimeValue(9.0, 4.000);//turning on at 9
-	SigOn.AddTimeValue(10.0, 4.000);
-	SigOn.AddTimeValue(11.0, 4.000);
-	SigOn.AddTimeValue(13.0, 4.000);
-	SigOn.AddTimeValue(14.0, 4.000);
-	SigOn.AddTimeValue(15.0, 4.000);
-	SigOn.AddTimeValue(16.0, 4.000);
-	SigOn.AddTimeValue(18.0, 4.000);
-
-	SpotX.Init();//bat symbol shows in spotlight
-	SpotX.AddTimeValue(0.0, -75.);
-	SpotX.AddTimeValue(5.0, -75.);
-	SpotX.AddTimeValue(7.0, -150.);
-	SpotX.AddTimeValue(8.0, -75.);
-	SpotX.AddTimeValue(9.0, 15.);//Symbol appears at 9
-	SpotX.AddTimeValue(10.0, 15.);
-	SpotX.AddTimeValue(11.0, 15.);
-	SpotX.AddTimeValue(13.0, 15.);
-	SpotX.AddTimeValue(14.0, 15.);
-	SpotX.AddTimeValue(15.0, 15.);
-	SpotX.AddTimeValue(16.0, 15.);
-	SpotX.AddTimeValue(18.0, 15.);
-
-	SpotY.Init();//bat symbol shows in spotlight
-	SpotY.AddTimeValue(0.0, -250);
-	SpotY.AddTimeValue(5.0, -250);
-	SpotY.AddTimeValue(7.0, -250.);
-	SpotY.AddTimeValue(8.0, -250.);
-	SpotY.AddTimeValue(9.0, 100.);//Symbol appears at 9
-	SpotY.AddTimeValue(10.0, 100.);
-	SpotY.AddTimeValue(11.0, 100.);
-	SpotY.AddTimeValue(13.0, 100.);
-	SpotY.AddTimeValue(14.0, 100.);
-	SpotY.AddTimeValue(15.0, 100.);
-	SpotY.AddTimeValue(16.0, 100.);
-	SpotY.AddTimeValue(18.0, 100.);
-
-	SpotZ.Init();//bat symbol shows in spotlight
-	SpotZ.AddTimeValue(0.0, -150.);
-	SpotZ.AddTimeValue(5.0, -350.);
-	SpotZ.AddTimeValue(7.0, -450.);
-	SpotZ.AddTimeValue(8.0, -650);
-	SpotZ.AddTimeValue(9.0, -550.);//Symbol appears at 9
-	SpotZ.AddTimeValue(10.0, -550.);
-	SpotZ.AddTimeValue(11.0, -550.);
-	SpotZ.AddTimeValue(13.0, -550.);
-	SpotZ.AddTimeValue(14.0, -550.);
-	SpotZ.AddTimeValue(15.0, -550.);
-	SpotZ.AddTimeValue(16.0, -550.);
-	SpotZ.AddTimeValue(18.0, -550.);
-
-	SigX.Init();//bat symbol shows in spotlight
-	SigX.AddTimeValue(0.0, 15.);
-	SigX.AddTimeValue(5.0, 15.);
-	SigX.AddTimeValue(7.0, 15.);
-	SigX.AddTimeValue(8.0, 15.);
-	SigX.AddTimeValue(9.0, 15.);//Symbol appears at 9
-	SigX.AddTimeValue(10.0, 15.);
-	SigX.AddTimeValue(11.0, 15.);
-	SigX.AddTimeValue(13.0, 15.);
-	SigX.AddTimeValue(14.0, 15.);
-	SigX.AddTimeValue(15.0, 15.);
-	SigX.AddTimeValue(16.0, 15.);
-	SigX.AddTimeValue(18.0, 15.);
-
-	SigY.Init();//bat symbol shows in spotlight
-	SigY.AddTimeValue(0.0, 100.);
-	SigY.AddTimeValue(5.0, 100.);
-	SigY.AddTimeValue(7.0, 100.);
-	SigY.AddTimeValue(8.0, 100.);
-	SigY.AddTimeValue(9.0, 100.);//Symbol appears at 9
-	SigY.AddTimeValue(10.0, 100.);
-	SigY.AddTimeValue(11.0, 100.);
-	SigY.AddTimeValue(13.0, 100.);
-	SigY.AddTimeValue(14.0, 100.);
-	SigY.AddTimeValue(15.0, 100.);
-	SigY.AddTimeValue(16.0, 100.);
-	SigY.AddTimeValue(18.0, 100.);
-
-	SigZ.Init();//bat symbol shows in spotlight
-	SigZ.AddTimeValue(0.0, -550.);
-	SigZ.AddTimeValue(5.0, -550.);
-	SigZ.AddTimeValue(7.0, -550.);
-	SigZ.AddTimeValue(8.0, -550.);
-	SigZ.AddTimeValue(9.0, -550.);//Symbol appears at 9
-	SigZ.AddTimeValue(10.0, -550.);
-	SigZ.AddTimeValue(11.0, -550.);
-	SigZ.AddTimeValue(13.0, -550.);
-	SigZ.AddTimeValue(14.0, -550.);
-	SigZ.AddTimeValue(15.0, -550.);
-	SigZ.AddTimeValue(16.0, -550.);
-	SigZ.AddTimeValue(18.0, -550.);
-
-	Symbol.Init();//bat symbol shows in spotlight
+	///Bat symbol object drawn for spotlight
+	Symbol.Init();//bat symbol time value for when to draw
 	Symbol.AddTimeValue(0.0, 0.000);
 	Symbol.AddTimeValue(5.0, 0.00);
 	Symbol.AddTimeValue(7.0, 0.000);
@@ -1130,6 +1107,173 @@ InitGraphics()
 	Symbol.AddTimeValue(15.0, 4.000);
 	Symbol.AddTimeValue(16.0, 4.000);
 	Symbol.AddTimeValue(18.0, 4.000);
+	Symbol.AddTimeValue(19.0, 4.000);//getting in jet
+	Symbol.AddTimeValue(20.0, 4.000);
+	Symbol.AddTimeValue(21.0, 4.000);
+	Symbol.AddTimeValue(22.0, 4.000);
+
+	SigX.Init();//bat symbol x value
+	SigX.AddTimeValue(0.0, 15.);
+	SigX.AddTimeValue(5.0, 15.);
+	SigX.AddTimeValue(7.0, 15.);
+	SigX.AddTimeValue(8.0, 15.);
+	SigX.AddTimeValue(9.0, 15.);//Symbol appears at 9 // spotlight turns off so bat symbol colors can show
+	SigX.AddTimeValue(10.0, 15.);
+	SigX.AddTimeValue(11.0, 15.);
+	SigX.AddTimeValue(13.0, 15.);
+	SigX.AddTimeValue(14.0, 15.);
+	SigX.AddTimeValue(15.0, 15.);
+	SigX.AddTimeValue(16.0, 15.);
+	SigX.AddTimeValue(18.0, 15.);
+	SigX.AddTimeValue(19.0, 15.);//getting in jet
+	SigX.AddTimeValue(20.0, 15.);
+	SigX.AddTimeValue(21.0, 15.);
+	SigX.AddTimeValue(22.0, 15.);
+
+
+	SigY.Init();//bat symbol y value
+	SigY.AddTimeValue(0.0, 90.);
+	SigY.AddTimeValue(7.0, 90.);
+	SigY.AddTimeValue(8.0, 110.);
+	SigY.AddTimeValue(9.0, 110.);//Symbol appears at 9
+	SigY.AddTimeValue(10.0, 110.);
+	SigY.AddTimeValue(11.0, 110.);
+	SigY.AddTimeValue(13.0, 110.);
+	SigY.AddTimeValue(14.0, 110.);
+	SigY.AddTimeValue(15.0, 110.);
+	SigY.AddTimeValue(16.0, 110.);
+	SigY.AddTimeValue(18.0, 110.);
+	SigY.AddTimeValue(19.0, 110.);//getting in jet
+	SigY.AddTimeValue(20.0, 110.);
+	SigY.AddTimeValue(21.0, 110.);
+	SigY.AddTimeValue(22.0, 110.);
+
+	SigZ.Init();//bat symbol z value
+	SigZ.AddTimeValue(0.0, -550.);
+	SigZ.AddTimeValue(5.0, -550.);
+	SigZ.AddTimeValue(7.0, -550.);
+	SigZ.AddTimeValue(8.0, -550.);
+	SigZ.AddTimeValue(9.0, -600.);//Symbol appears at 9
+	SigZ.AddTimeValue(9.25, -599.);//Symbol appears at 9
+	SigZ.AddTimeValue(9.5, -590.);//Symbol appears at 9
+	SigZ.AddTimeValue(9.75, -570.);//Symbol appears at 9
+	SigZ.AddTimeValue(10.0, -550.);
+	SigZ.AddTimeValue(11.0, -550.);
+	SigZ.AddTimeValue(13.0, -550.);
+	SigZ.AddTimeValue(14.0, -550.);
+	SigZ.AddTimeValue(15.0, -550.);
+	SigZ.AddTimeValue(16.0, -550.);
+	SigZ.AddTimeValue(18.0, -550.);
+	SigZ.AddTimeValue(19.0, -550.);//getting in jet
+	SigZ.AddTimeValue(20.0, -550.);
+	SigZ.AddTimeValue(21.0, -550.);
+	SigZ.AddTimeValue(22.0, -550.);
+
+	//Bat signal spotlight actual light portion
+	SigOn.Init();//bat signal time value for when to turn on and off
+	SigOn.AddTimeValue(0.0, 0.000); // turn on spotlight
+	SigOn.AddTimeValue(5.0, 0.00);
+	SigOn.AddTimeValue(7.0, 0.000);
+	SigOn.AddTimeValue(8.0, 0.000);
+	SigOn.AddTimeValue(9.0, 4.000);//turn off spotlight at 9 so symbol will show
+	SigOn.AddTimeValue(10.0, 4.000);
+	SigOn.AddTimeValue(11.0, 4.000);
+	SigOn.AddTimeValue(13.0, 4.000);
+	SigOn.AddTimeValue(14.0, 4.000);
+	SigOn.AddTimeValue(15.0, 4.000);
+	SigOn.AddTimeValue(16.0, 4.000);
+	SigOn.AddTimeValue(18.0, 4.000);
+	SigOn.AddTimeValue(19.0, 4.000);//getting in jet
+	SigOn.AddTimeValue(20.0, 4.000);
+	SigOn.AddTimeValue(21.0, 4.000);
+	SigOn.AddTimeValue(22.0, 4.000);
+
+	SpotX.Init();//bat spotlight x value
+	SpotX.AddTimeValue(0.0, -75.);  // spotlight tracking to wall
+	SpotX.AddTimeValue(5.0, -75.);
+	SpotX.AddTimeValue(7.0, -150.);
+	SpotX.AddTimeValue(8.0, -75.);
+	SpotX.AddTimeValue(9.0, -75.);//Symbol appears at 9 // spotlight turns off so bat symbol colors can show
+	SpotX.AddTimeValue(10.0, -75.);
+	SpotX.AddTimeValue(11.0, -75.);
+	SpotX.AddTimeValue(13.0, -75.);
+	SpotX.AddTimeValue(14.0, -75.);
+	SpotX.AddTimeValue(15.0, -75.);
+	SpotX.AddTimeValue(16.0, -75.);
+	SpotX.AddTimeValue(18.0, -75.);
+	SpotX.AddTimeValue(19.0, -75.);//getting in jet
+	SpotX.AddTimeValue(20.0, -75.);
+	SpotX.AddTimeValue(21.0, -75.);
+	SpotX.AddTimeValue(22.0, -75.);
+
+
+	SpotY.Init();//bat spotlight y value
+	SpotY.AddTimeValue(0.0, -250); // spotlight tracking to wall
+	SpotY.AddTimeValue(5.0, -250);
+	SpotY.AddTimeValue(7.0, -250.);
+	SpotY.AddTimeValue(8.0, -150.);
+	SpotY.AddTimeValue(9.0, -125.);//Symbol appears at 9 // spotlight turns off so bat symbol colors can show
+	SpotY.AddTimeValue(10.0, -125.);
+	SpotY.AddTimeValue(11.0, -125.);
+	SpotY.AddTimeValue(13.0, -125.);
+	SpotY.AddTimeValue(14.0, -125.);
+	SpotY.AddTimeValue(15.0, -125.);
+	SpotY.AddTimeValue(16.0, -125.);
+	SpotY.AddTimeValue(18.0, -125.);
+	SpotY.AddTimeValue(19.0, -125.);//getting in jet
+	SpotY.AddTimeValue(20.0, -125.);
+	SpotY.AddTimeValue(21.0, -125.);
+	SpotY.AddTimeValue(22.0, -125.);
+
+	SpotZ.Init();//bat spotlightl z value
+	SpotZ.AddTimeValue(0.0, -150.); // spotlight tracking to wall
+	SpotZ.AddTimeValue(5.0, -350.);
+	SpotZ.AddTimeValue(7.0, -450.);
+	SpotZ.AddTimeValue(8.0, -650);
+	SpotZ.AddTimeValue(9.0, -550.);//Symbol appears at 9
+	SpotZ.AddTimeValue(10.0, -550.);
+	SpotZ.AddTimeValue(11.0, -550.);
+	SpotZ.AddTimeValue(13.0, -550.);
+	SpotZ.AddTimeValue(14.0, -550.);
+	SpotZ.AddTimeValue(15.0, -550.);
+	SpotZ.AddTimeValue(16.0, -550.);
+	SpotZ.AddTimeValue(18.0, -550.);
+	SpotZ.AddTimeValue(19.0, -550.);//getting in jet
+	SpotZ.AddTimeValue(20.0, -550.);
+	SpotZ.AddTimeValue(21.0, -550.);
+	SpotZ.AddTimeValue(22.0, -550.);
+
+	Zrot2.Init();//Bat Swarm z rotation
+	Zrot2.AddTimeValue(0.0, 0.000);
+	Zrot2.AddTimeValue(0.5, 0.000);
+	Zrot2.AddTimeValue(2.0, 45);
+	Zrot2.AddTimeValue(5.0, 90);
+	Zrot2.AddTimeValue(8.0, 135);
+	Zrot2.AddTimeValue(10.0, 180);
+	Zrot2.AddTimeValue(12.0, 225.00);
+	Zrot2.AddTimeValue(14.0, 270.000);
+	Zrot2.AddTimeValue(16.0, 315.000);
+	Zrot2.AddTimeValue(18.0, 0.000);
+	Zrot2.AddTimeValue(19.0, 0.000);//getting in jet
+	Zrot2.AddTimeValue(20.0, 0.000);
+	Zrot2.AddTimeValue(21.0, 0.000);
+	Zrot2.AddTimeValue(22.0, 0.000);
+
+	Xrot2.Init();// Bat Swarm x rotation
+	Xrot2.AddTimeValue(0.0, 0.000);
+	Xrot2.AddTimeValue(0.5, 0.000);
+	Xrot2.AddTimeValue(2.0, 0.000);
+	Xrot2.AddTimeValue(5.0, 0.000);
+	Xrot2.AddTimeValue(8.0, 0.000);
+	Xrot2.AddTimeValue(10.0, 0.000);
+	Xrot2.AddTimeValue(12.0, 0.000);
+	Xrot2.AddTimeValue(14.0, 0.000);
+	Xrot2.AddTimeValue(16.0, 0.000);
+	Xrot2.AddTimeValue(18.0, 0.000);
+	Xrot2.AddTimeValue(19.0, 0.000);//getting in jet
+	Xrot2.AddTimeValue(20.0, 0.000);
+	Xrot2.AddTimeValue(21.0, 0.000);
+	Xrot2.AddTimeValue(22.0, 0.000);
 
 	Xpos2.Init(); //Bat Swarm x value
 	Xpos2.AddTimeValue(0.0, 0.000);
@@ -1142,18 +1286,10 @@ InitGraphics()
 	Xpos2.AddTimeValue(14.0, 0.000);
 	Xpos2.AddTimeValue(16.0, 0.000);
 	Xpos2.AddTimeValue(18.0, 0.000);
-
-	Zrot2.Init();//Bat Swarm x rotation
-	Zrot2.AddTimeValue(0.0, 0.000);
-	Zrot2.AddTimeValue(0.5, 0.000);
-	Zrot2.AddTimeValue(2.0, 45);
-	Zrot2.AddTimeValue(5.0, 90);
-	Zrot2.AddTimeValue(8.0, 135);
-	Zrot2.AddTimeValue(10.0, 180);
-	Zrot2.AddTimeValue(12.0, 225.00);
-	Zrot2.AddTimeValue(14.0, 270.000);
-	Zrot2.AddTimeValue(16.0, 315.000);
-	Zrot2.AddTimeValue(18.0, 0.000);
+	Xpos2.AddTimeValue(19.0, 0.000);//getting in jet
+	Xpos2.AddTimeValue(20.0, 0.000);
+	Xpos2.AddTimeValue(21.0, 0.000);
+	Xpos2.AddTimeValue(22.0, 0.000);
 
 	Ypos2.Init();//Bat Swarm y value
 	Ypos2.AddTimeValue(0.0, 75.000);
@@ -1166,6 +1302,10 @@ InitGraphics()
 	Ypos2.AddTimeValue(14.0, 50.000);
 	Ypos2.AddTimeValue(16.0, 75.000);
 	Ypos2.AddTimeValue(18.0, 75.000);
+	Ypos2.AddTimeValue(19.0, 100.000);//getting in jet
+	Ypos2.AddTimeValue(20.0, 200.00);
+	Ypos2.AddTimeValue(21.0, 200.00);
+	Ypos2.AddTimeValue(22.0, 200.00);
 
 	Zpos2.Init();// Bat Swarm z value
 	Zpos2.AddTimeValue(0.0, -250.000);
@@ -1178,6 +1318,10 @@ InitGraphics()
 	Zpos2.AddTimeValue(14.0, -20.000);
 	Zpos2.AddTimeValue(16.0, -20.000);
 	Zpos2.AddTimeValue(18.0, -20.000);
+	Zpos2.AddTimeValue(19.0, -20.000);//getting in jet
+	Zpos2.AddTimeValue(20.0, -10.000);
+	Zpos2.AddTimeValue(21.0, -5.000);
+	Zpos2.AddTimeValue(22.0, -5.000);
 
 	EyeX.Init(); //eye x value
 	EyeX.AddTimeValue(0.0, -10.f);
@@ -1190,6 +1334,10 @@ InitGraphics()
 	EyeX.AddTimeValue(14.0, -10.f);
 	EyeX.AddTimeValue(16.0, -10.f);
 	EyeX.AddTimeValue(18.0, -10.f);
+	EyeX.AddTimeValue(19.0, -10.f);//getting in jet
+	EyeX.AddTimeValue(20.0, -10.f);
+	EyeX.AddTimeValue(21.0, -10.f);
+	EyeX.AddTimeValue(22.0, -10.f);
 
 	EyeY.Init();//eye y value
 	EyeY.AddTimeValue(0.0, 10.f);
@@ -1202,6 +1350,10 @@ InitGraphics()
 	EyeY.AddTimeValue(14.0, 50.f);
 	EyeY.AddTimeValue(16.0, 50.f);
 	EyeY.AddTimeValue(18.0, 50.f);
+	EyeY.AddTimeValue(19.0, 50.f);//getting in jet
+	EyeY.AddTimeValue(20.0, 50.f);
+	EyeY.AddTimeValue(21.0, 50.f);
+	EyeY.AddTimeValue(22.0, 50.f);
 
 	EyeZ.Init();// eye z value
 	EyeZ.AddTimeValue(0.0, 50.f);
@@ -1214,42 +1366,74 @@ InitGraphics()
 	EyeZ.AddTimeValue(14.0, 150.f);
 	EyeZ.AddTimeValue(16.0, 150.f);
 	EyeZ.AddTimeValue(18.0, 150.f);
+	EyeZ.AddTimeValue(19.0, 150.f);//getting in jet
+	EyeZ.AddTimeValue(20.0, 150.f);
+	EyeZ.AddTimeValue(21.0, 150.f);
+	EyeZ.AddTimeValue(22.0, 150.f);
 
-	WingX.Init(); //BatWing
+	WingX.Init(); //BatWing x value
 	WingX.AddTimeValue(0.0, 0.00);
 	WingX.AddTimeValue(0.5, 0.00);
-	WingX.AddTimeValue(2.0, 0.50);
-	WingX.AddTimeValue(5.0, 0.80);
-	WingX.AddTimeValue(8.0, 0.80);
-	WingX.AddTimeValue(10.0, 0.80);
-	WingX.AddTimeValue(12.0, 0.80);
-	WingX.AddTimeValue(14.0, 0.80);
-	WingX.AddTimeValue(16.0, 0.80);
+	WingX.AddTimeValue(2.0, 0.00);
+	WingX.AddTimeValue(5.0, 0.00);
+	WingX.AddTimeValue(8.0, 0.00);
+	WingX.AddTimeValue(10.0, 0.00);
+	WingX.AddTimeValue(12.0, 0.00);
+	WingX.AddTimeValue(14.0, 0.00);
+	WingX.AddTimeValue(16.0, 0.00);
 	WingX.AddTimeValue(18.0, 0.00);
+	WingX.AddTimeValue(19.0, 0.00);//getting in jet
+	WingX.AddTimeValue(20.0, 0.00);
+	WingX.AddTimeValue(21.0, 0.00);
+	WingX.AddTimeValue(22.0, 0.00);
 
-	WingY.Init();//BatWing
-	WingY.AddTimeValue(0.0, 0.00);
-	WingY.AddTimeValue(0.5, 0.00);
-	WingY.AddTimeValue(2.0, 0.50);
-	WingY.AddTimeValue(5.0, 1.000);
-	WingY.AddTimeValue(8.0, 1.000);
-	WingY.AddTimeValue(10.0, 1.000);
-	WingY.AddTimeValue(12.0, 1.000);
-	WingY.AddTimeValue(14.0, 1.000);
-	WingY.AddTimeValue(16.0, 1.000);
-	WingY.AddTimeValue(18.0, 0.000);
+	WingY.Init();//BatWing y value
+	WingY.AddTimeValue(0.0, 300.);
+	WingY.AddTimeValue(0.5, 300.);
+	WingY.AddTimeValue(2.0, 300.);
+	WingY.AddTimeValue(5.0, 300.);
+	WingY.AddTimeValue(8.0, 300.);
+	WingY.AddTimeValue(10.0, 200.);
+	WingY.AddTimeValue(12.0, 100.);
+	WingY.AddTimeValue(14.0, 10.);
+	WingY.AddTimeValue(16.0, 1.);
+	WingY.AddTimeValue(18.0, 1.);
+	WingY.AddTimeValue(19.0, 1.);//getting in jet
+	WingY.AddTimeValue(20.0, 50.);
+	WingY.AddTimeValue(21.0, 300.00);
+	WingY.AddTimeValue(22.0, 300.00);
 
-	WingZ.Init();//BatWing Z
-	WingZ.AddTimeValue(0.0, 0.00);
-	WingZ.AddTimeValue(0.5, 0.00);
-	WingZ.AddTimeValue(2.0, 0.50);
-	WingZ.AddTimeValue(5.0, 1.000);
-	WingZ.AddTimeValue(8.0, 1.000);
-	WingZ.AddTimeValue(10.0, 1.000);
-	WingZ.AddTimeValue(12.0, 1.000);
-	WingZ.AddTimeValue(14.0, 1.000);
-	WingZ.AddTimeValue(16.0, 1.000);
-	WingZ.AddTimeValue(18.0, 0.000);
+	WingZ.Init();//BatWing z value
+	WingZ.AddTimeValue(0.0, 100.);
+	WingZ.AddTimeValue(0.5, 100.);
+	WingZ.AddTimeValue(2.0, 100.);
+	WingZ.AddTimeValue(5.0, 100.);
+	WingZ.AddTimeValue(8.0, 75.);
+	WingZ.AddTimeValue(10.0, 75.);
+	WingZ.AddTimeValue(12.0, 50.);
+	WingZ.AddTimeValue(14.0, 40.);
+	WingZ.AddTimeValue(16.0, 40.);
+	WingZ.AddTimeValue(18.0, 40.);
+	WingZ.AddTimeValue(19.0, 40.00);//getting in jet
+	WingZ.AddTimeValue(20.0, -50.00);
+	WingZ.AddTimeValue(21.0, -150.00);
+	WingZ.AddTimeValue(22.0, -600.00);
+
+	WingRotY.Init();
+	WingRotY.AddTimeValue(0.0, 0.00);
+	WingRotY.AddTimeValue(0.5, 0.00);
+	WingRotY.AddTimeValue(2.0, 0.00);
+	WingRotY.AddTimeValue(5.0, 0.00);
+	WingRotY.AddTimeValue(8.0, 0.00);
+	WingRotY.AddTimeValue(10.0, 0.00);
+	WingRotY.AddTimeValue(12.0, 0.00);
+	WingRotY.AddTimeValue(14.0, 0.00);
+	WingRotY.AddTimeValue(16.0, 0.00);
+	WingRotY.AddTimeValue(18.0, 0.00);
+	WingRotY.AddTimeValue(19.0, 0.00);//getting in jet
+	WingRotY.AddTimeValue(20.0, 180);
+	WingRotY.AddTimeValue(21.0, 180);
+	WingRotY.AddTimeValue(22.0, 180);
 
 
 
@@ -1274,6 +1458,22 @@ InitGraphics()
 #endif
 
 	// all other setups go here, such as GLSLProgram and KeyTime setups:
+	int width, height;
+	char* file = (char*)"greybrick2.bmp";
+	unsigned char* texture = BmpToTexture(file, &width, &height);
+	if (texture == NULL)
+		fprintf(stderr, "Cannot open texture '%s'\n", file);
+	else
+		fprintf(stderr, "Opened '%s': width = %d ; height = %d\n", file, width, height);
+
+	glGenTextures(1, &WallTexture);
+	glBindTexture(GL_TEXTURE_2D, WallTexture);
+	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, texture);
 
 }
 
@@ -1321,22 +1521,22 @@ InitLists()
 	WallList = glGenLists(1);
 	glNewList(WallList, GL_COMPILE);
 	glPushMatrix();
-	// or whatever else you want
 		SetMaterial(0.f, 0.f, 0.f, 80.f);
+
 		glNormal3f(0., 1., 0.);
-		glTranslatef(0., 100., -600.);
-		glRotatef(90., 1., 0., 0.);
-		for (int i = 0; i < NZ; i++)
-		{
-			glColor3f(0.0f, 0.3f, 0.5f);
+
+		for (int i = 0; i < NZ; i++) {
 			glBegin(GL_QUAD_STRIP);
-			for (int j = 0; j < NX; j++)
-			{
+			for (int j = 0; j < NX; j++) {
+				float s = (float)j / (NX - 1);
+				float t = (float)i / (NZ - 1);
+				glTexCoord2f(s, t);
 				glVertex3f(X0 + DX * (float)j, YGRID, Z0 + DZ * (float)(i + 0));
 				glVertex3f(X0 + DX * (float)j, YGRID, Z0 + DZ * (float)(i + 1));
 			}
 			glEnd();
 		}
+
 	glPopMatrix();
 	glEndList();
 
@@ -1348,12 +1548,15 @@ InitLists()
 	glNormal3f(0., 1., 0.);
 	XSIDE = 110;
 	ZSIDE = 1040;
-	glTranslatef(0., -.1, 0.);
+	
 	for (int i = 0; i < NZ; i++)
 	{
 		glBegin(GL_QUAD_STRIP);
 		for (int j = 0; j < NX; j++)
 		{
+			float s = (float)j / (NX - 1) * (XSIDE / (float)XSIDE); 
+			float t = (float)i / (NZ - 1) * (ZSIDE / (float)ZSIDE);
+			glTexCoord2f(s, t);
 			glVertex3f(X0 + DX * (float)j, YGRID, Z0 + DZ * (float)(i + 0));
 			glVertex3f(X0 + DX * (float)j, YGRID, Z0 + DZ * (float)(i + 1));
 		}
@@ -1370,6 +1573,8 @@ InitLists()
 		glRotatef(180, 0, 1, 0);
 		SetMaterial(0.3f, 0.3f, 0.3f, 100.f);
 		LoadObjFile("street.obj");
+		SetMaterial(1.0f, 1.0f, 1.0f, 1000.f);
+		LoadObjFile("streetLights.obj");
 	glPopMatrix();
 	glEndList();
 
@@ -1389,11 +1594,12 @@ InitLists()
 	BatWingList = glGenLists(1);
 	glNewList(BatWingList, GL_COMPILE);
 	glPushMatrix();
-	glScalef(0.5f, 0.5f, 0.5f);
+	glScalef(0.4f, 0.4f, 0.4f);
+	glRotatef(180.f, 0.0, 1.0, 0.0);
 	SetMaterial(0.0f, 0.0f, 0.0f, 100.f);
-	LoadObjFile("blackBatMobile.obj");
+	LoadObjFile("batWingBlack.obj");
 	SetMaterial(1.0f, 0.0f, 0.0f, 100.f);
-	LoadObjFile("redBatMobile.obj");
+	LoadObjFile("batWingRed.obj");
 	glPopMatrix();
 	glEndList();
 
